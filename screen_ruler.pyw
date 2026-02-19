@@ -546,6 +546,8 @@ class ScreenRuler(QtWidgets.QWidget):
         self.resize(height, width)
         self.window_size_x = height
         self.window_size_y = width
+        if self.aspect_lock_enabled:
+            self.setAspectLockTarget(self.window_size_x, self.window_size_y)
 
     def resetWindow(self):
         self.window_size_x = 500
