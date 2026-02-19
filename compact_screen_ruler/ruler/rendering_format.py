@@ -10,7 +10,7 @@ class RulerRenderingFormatMixin:
                 "small_step_px": 5.0,
                 "medium_step_px": 10.0,
                 "major_step_px": 50.0,
-                "major_unit": 5.0,
+                "major_unit": 50.0,
                 "distinct_subticks": False,
             }
 
