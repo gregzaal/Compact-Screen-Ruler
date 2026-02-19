@@ -2,6 +2,9 @@
 
 Small always-on-top screen ruler for measuring on-screen distances.
 
+<img width="690" height="70" alt="Screenshot" src="https://github.com/user-attachments/assets/f79fe4bd-ad99-40c6-acbb-13d40efaffb0" />
+
+
 ## Features
 
 - Frameless ruler window that stays on top.
