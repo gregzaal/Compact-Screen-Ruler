@@ -21,6 +21,7 @@ Current version: **v1.0.0**
 - Light/dark color inversion and transparency toggle.
 - Aspect ratio lock.
 - Unit toggle for measurements (px, cm, inches).
+- Copy current ruler dimensions to clipboard.
 - Screenshot capture of the screen area behind the ruler.
 - Clickthrough mode to interact with apps behind the ruler.
 
@@ -28,7 +29,8 @@ Current version: **v1.0.0**
 
 - `Right Click`: Measuring mode
 - `Q` or `Ctrl+Q`: Quit
-- `Ctrl` (hold): Snap move/resize to 5 px
+- `Ctrl` (hold): Snap move/resize to medium tick spacing (10px, 0.5cm, 0.25in)
+- `Ctrl+C`: Copy current dimensions to clipboard
 - `Shift` (hold): Disable screen-edge snap
 - `S`: Set exact position and size
 - `T`: Toggle transparency

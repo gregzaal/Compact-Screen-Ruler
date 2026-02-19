@@ -62,6 +62,7 @@ class RulerCore(QtWidgets.QWidget):
         shortcut_map = {
             "Q": self.close,
             "Ctrl+Q": self.close,
+            "Ctrl+C": self.copyDimensionsToClipboard,
             "S": self.setWindowSize,
             "F": self.flipOrientation,
             "R": self.resetWindow,
@@ -215,6 +216,12 @@ class RulerCore(QtWidgets.QWidget):
         current_index = units.index(self.measurement_unit) if self.measurement_unit in units else 0
         self.measurement_unit = units[(current_index + 1) % len(units)]
         self.update()
+
+    def copyDimensionsToClipboard(self):
+        dimensions_text = f"{self.width()}x{self.height()}"
+        clipboard = QtWidgets.QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(dimensions_text)
 
     def takeScreenshot(self):
         window_x = self.pos().x()
