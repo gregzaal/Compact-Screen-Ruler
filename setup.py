@@ -1,11 +1,11 @@
 from cx_Freeze import setup, Executable
 import sys
 
-build_exe_options = {"includes": ["sip", "re", "atexit", "PyQt6.QtGui", "PyQt6.QtCore", "PyQt6.QtWidgets"]}
+build_exe_options = {"includes": ["re", "atexit", "PyQt6.QtGui", "PyQt6.QtCore", "PyQt6.QtWidgets"]}
 
 base = None
 if sys.platform == "win32":
-    base = "Win32GUI"
+    base = "gui"
 
 setup(
     name="Screen Ruler",
@@ -18,7 +18,6 @@ setup(
             base=base,
             target_name="screen_ruler.exe",
             icon="icon.ico",
-            compress=True,
         )
     ],
 )
