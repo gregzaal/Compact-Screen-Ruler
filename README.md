@@ -11,6 +11,7 @@ Small always-on-top screen ruler for measuring on-screen distances.
 - Resize from edges and corners.
 - Drag to move the ruler (LMB in the center area, or MMB from anywhere).
 - Hold Ctrl to snap when moving or resizing.
+- Snap to screen edges by default when moving or resizing (hold Shift to disable).
 - Right-click measure mode shows crosshair lines and live X/Y distance from the window origin.
 - Set exact position/size.
 - Light/dark color inversion and transparency toggle.
@@ -23,6 +24,7 @@ Small always-on-top screen ruler for measuring on-screen distances.
 - `Right Click`: Measuring mode
 - `Q` or `Ctrl+Q`: Quit
 - `Ctrl` (hold): Snap move/resize to 5 px
+- `Shift` (hold): Disable screen-edge snap
 - `S`: Set exact position and size
 - `T`: Toggle transparency
 - `I`: Toggle light/dark colors

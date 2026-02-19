@@ -5,6 +5,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 
 SNAP_INCREMENT = 5
+SCREEN_EDGE_SNAP_DISTANCE = 12
 
 
 def snap(num, increment=SNAP_INCREMENT):
@@ -117,6 +118,7 @@ class HelpDialog(QtWidgets.QDialog):
             "C\t\tToggle clickthrough mode\n"
             "L\t\tLock/unlock aspect ratio while resizing\n"
             "Ctrl\t\tHold down Ctrl to snap to increments of 5\n"
+            "Shift\t\tHold down Shift to disable screen-edge snapping\n"
             "Ctrl + S\t\tTake a screenshot of what's behind the ruler\n"
             "F1 / H\t\tDisplay this Help dialog"
         )
@@ -168,6 +170,112 @@ class ScreenRuler(QtWidgets.QWidget):
         if on_top or on_bottom:
             return QtCore.Qt.CursorShape.SizeVerCursor
         return QtCore.Qt.CursorShape.OpenHandCursor
+
+    def getScreenGeometryForRect(self, x_pos, y_pos, width, height):
+        center_point = QtCore.QPoint(int(x_pos + width / 2), int(y_pos + height / 2))
+        screen = QtGui.QGuiApplication.screenAt(center_point)
+        if not screen:
+            screen = QtGui.QGuiApplication.primaryScreen()
+        return screen.availableGeometry() if screen else QtCore.QRect()
+
+    def snapPositionToScreenEdges(self, x_pos, y_pos, width, height):
+        screen_rect = self.getScreenGeometryForRect(x_pos, y_pos, width, height)
+        if screen_rect.isNull():
+            return x_pos, y_pos
+
+        snap_distance = SCREEN_EDGE_SNAP_DISTANCE
+        left_edge = screen_rect.x()
+        top_edge = screen_rect.y()
+        right_edge = left_edge + screen_rect.width()
+        bottom_edge = top_edge + screen_rect.height()
+
+        x_candidates = [(abs(x_pos - left_edge), left_edge), (abs((x_pos + width) - right_edge), right_edge - width)]
+        y_candidates = [(abs(y_pos - top_edge), top_edge), (abs((y_pos + height) - bottom_edge), bottom_edge - height)]
+
+        x_distance, snapped_x = min(x_candidates, key=lambda item: item[0])
+        y_distance, snapped_y = min(y_candidates, key=lambda item: item[0])
+
+        if x_distance <= snap_distance:
+            x_pos = snapped_x
+        if y_distance <= snap_distance:
+            y_pos = snapped_y
+
+        return x_pos, y_pos
+
+    def snapResizeGeometryToScreenEdges(self, x_pos, y_pos, width, height, on_left, on_right, on_top, on_bottom):
+        screen_rect = self.getScreenGeometryForRect(x_pos, y_pos, width, height)
+        if screen_rect.isNull():
+            return x_pos, y_pos, width, height
+
+        snap_distance = SCREEN_EDGE_SNAP_DISTANCE
+        left_edge = screen_rect.x()
+        top_edge = screen_rect.y()
+        right_edge = left_edge + screen_rect.width()
+        bottom_edge = top_edge + screen_rect.height()
+
+        right_side = x_pos + width
+        bottom_side = y_pos + height
+
+        if on_left and abs(x_pos - left_edge) <= snap_distance:
+            x_pos = left_edge
+            width = max(self.MIN_WINDOW_SIZE, right_side - x_pos)
+            right_side = x_pos + width
+        if on_right and abs(right_side - right_edge) <= snap_distance:
+            width = max(self.MIN_WINDOW_SIZE, right_edge - x_pos)
+            right_side = x_pos + width
+
+        if on_top and abs(y_pos - top_edge) <= snap_distance:
+            y_pos = top_edge
+            height = max(self.MIN_WINDOW_SIZE, bottom_side - y_pos)
+            bottom_side = y_pos + height
+        if on_bottom and abs(bottom_side - bottom_edge) <= snap_distance:
+            height = max(self.MIN_WINDOW_SIZE, bottom_edge - y_pos)
+
+        return x_pos, y_pos, width, height
+
+    def getScreenEdgeAlignment(self):
+        x_pos = self.pos().x()
+        y_pos = self.pos().y()
+        width = self.width()
+        height = self.height()
+        screen_rect = self.getScreenGeometryForRect(x_pos, y_pos, width, height)
+        if screen_rect.isNull():
+            return {"left": False, "right": False, "top": False, "bottom": False}
+
+        left_edge = screen_rect.x()
+        top_edge = screen_rect.y()
+        right_edge = left_edge + screen_rect.width()
+        bottom_edge = top_edge + screen_rect.height()
+
+        return {
+            "left": x_pos == left_edge,
+            "right": x_pos + width == right_edge,
+            "top": y_pos == top_edge,
+            "bottom": y_pos + height == bottom_edge,
+        }
+
+    def drawAlignedScreenEdges(self, painter):
+        aligned_edges = self.getScreenEdgeAlignment()
+        if not any(aligned_edges.values()):
+            return
+
+        painter.save()
+        pen = QtGui.QPen(QtGui.QColor(0, 255, 0, 255), 2, QtCore.Qt.PenStyle.SolidLine)
+        painter.setPen(pen)
+
+        max_x = max(self.width() - 1, 0)
+        max_y = max(self.height() - 1, 0)
+
+        if aligned_edges["top"]:
+            painter.drawLine(0, 0, max_x, 0)
+        if aligned_edges["bottom"]:
+            painter.drawLine(0, max_y, max_x, max_y)
+        if aligned_edges["left"]:
+            painter.drawLine(0, 0, 0, max_y)
+        if aligned_edges["right"]:
+            painter.drawLine(max_x, 0, max_x, max_y)
+
+        painter.restore()
 
     def updateHoverState(self, local_x, local_y):
         hover_zones = self.getResizeHitZones(local_x, local_y)
@@ -277,6 +385,7 @@ class ScreenRuler(QtWidgets.QWidget):
             painter.drawRect(QtCore.QRect(21, 21, max(self.width() - 21 * 2, 0), max(self.height() - 21 * 2, 0)))
 
         self.drawHoverHints(painter, col1)
+        self.drawAlignedScreenEdges(painter)
 
         pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
         painter.setPen(pen)
@@ -631,6 +740,8 @@ class ScreenRuler(QtWidgets.QWidget):
 
     def mouseMoveEvent(self, event):
         ctrl_is_held = bool(QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.KeyboardModifier.ControlModifier)
+        shift_is_held = bool(QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier)
+        screen_edge_snap_enabled = not shift_is_held
         window_x = self.pos().x()
         window_y = self.pos().y()
         global_pos = event.globalPosition()
@@ -645,10 +756,13 @@ class ScreenRuler(QtWidgets.QWidget):
         if self.middleclick:
             move_x = global_x - self.offset.x()
             move_y = global_y - self.offset.y()
+            if screen_edge_snap_enabled:
+                move_x, move_y = self.snapPositionToScreenEdges(move_x, move_y, self.window_size_x, self.window_size_y)
             if ctrl_is_held:
                 self.move(snap(move_x), snap(move_y))
             else:
                 self.move(move_x, move_y)
+            self.update()
         elif self.leftclick:
             local_x = self.offset.x()
             local_y = self.offset.y()
@@ -738,6 +852,27 @@ class ScreenRuler(QtWidgets.QWidget):
                 elif not on_top and not on_bottom:
                     move_y = orig_top + int(round((self.window_size_y - resize_y) / 2))
 
+            if screen_edge_snap_enabled:
+                if resize_x is not None and resize_y is not None:
+                    geometry_x = move_x if move_x is not None else window_x
+                    geometry_y = move_y if move_y is not None else window_y
+                    geometry_x, geometry_y, resize_x, resize_y = self.snapResizeGeometryToScreenEdges(
+                        geometry_x,
+                        geometry_y,
+                        resize_x,
+                        resize_y,
+                        on_left,
+                        on_right,
+                        on_top,
+                        on_bottom,
+                    )
+                    move_x = geometry_x
+                    move_y = geometry_y
+                elif move_x is not None and move_y is not None:
+                    move_x, move_y = self.snapPositionToScreenEdges(
+                        move_x, move_y, self.window_size_x, self.window_size_y
+                    )
+
             if resize_x is not None and resize_y is not None:
                 if ctrl_is_held:
                     self.resize(snap(resize_x), snap(resize_y))
@@ -748,6 +883,7 @@ class ScreenRuler(QtWidgets.QWidget):
                     self.move(snap(move_x), snap(move_y))
                 else:
                     self.move(move_x, move_y)
+            self.update()
 
         else:
             self.update()
