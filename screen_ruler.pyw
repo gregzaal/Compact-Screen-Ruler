@@ -445,18 +445,25 @@ class ScreenRuler(QtWidgets.QWidget):
         self.update()
 
     def takeScreenshot(self):
-        self.hide()
         window_x = self.pos().x()
         window_y = self.pos().y()
+        window_w = self.width()
+        window_h = self.height()
 
-        screen = QtGui.QGuiApplication.primaryScreen()
+        center_point = self.frameGeometry().center()
+        screen = QtGui.QGuiApplication.screenAt(center_point)
         if not screen:
-            self.show()
+            screen = QtGui.QGuiApplication.primaryScreen()
+
+        if not screen:
             return
 
-        raw = screen.grabWindow(0)
-        rect = QtCore.QRect(window_x, window_y, self.window_size_x, self.window_size_y)
-        new = raw.copy(rect)
+        self.hide()
+
+        screen_geo = screen.geometry()
+        local_x = window_x - screen_geo.x()
+        local_y = window_y - screen_geo.y()
+        new = screen.grabWindow(0, local_x, local_y, window_w, window_h)
 
         fname, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save screenshot", "", "PNG File (*.png)")
         if fname and not fname.lower().endswith(".png"):
