@@ -1,8 +1,16 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
+import math
 
 
 def snap(num):
     return int(5 * round(float(num) / 5))
+
+
+def simplify_ratio(width, height):
+    ratio_width = max(1, int(width))
+    ratio_height = max(1, int(height))
+    divisor = math.gcd(ratio_width, ratio_height)
+    return ratio_width // divisor, ratio_height // divisor
 
 
 class ChooseGeometry(QtWidgets.QDialog):
@@ -97,6 +105,7 @@ class HelpDialog(QtWidgets.QDialog):
             "R\t\tReset the window size and position to defaults\n"
             "T\t\tMake the window transparent\n"
             "I\t\tSwitch between light and dark colors\n"
+            "L\t\tLock/unlock aspect ratio while resizing\n"
             "Ctrl\t\tHold down Ctrl to snap to increments of 5\n"
             "Ctrl + S\t\tTake a screenshot of what's behind the ruler\n"
             "F1 / H\t\tDisplay this Help dialog"
@@ -254,6 +263,7 @@ class ScreenRuler(QtWidgets.QWidget):
                     QtCore.Qt.AlignmentFlag.AlignCenter,
                     str(size_x) + " x " + str(size_y),
                 )
+                self.drawStatusMessages(painter, col3)
             elif self.height() > 80 and self.width() < 88:
                 painter.drawText(
                     QtCore.QRect(0, self.height() - 37, self.width(), 20),
@@ -269,6 +279,52 @@ class ScreenRuler(QtWidgets.QWidget):
 
         painter.end()
 
+    def getStatusMessages(self):
+        messages = []
+        if self.aspect_lock_enabled:
+            ratio_width, ratio_height = simplify_ratio(self.aspect_lock_target_width, self.aspect_lock_target_height)
+            messages.append(f"Aspect Ratio Locked [{ratio_width}:{ratio_height}]")
+        return messages
+
+    def drawStatusMessages(self, painter, color_value):
+        messages = self.getStatusMessages()
+        if not messages:
+            return
+
+        painter.save()
+
+        font = QtGui.QFont(painter.font())
+        point_size = font.pointSizeF()
+        if point_size > 0:
+            font.setPointSizeF(point_size * 0.9)
+        else:
+            pixel_size = font.pixelSize()
+            if pixel_size > 0:
+                font.setPixelSize(max(1, int(round(pixel_size * 0.9))))
+        painter.setFont(font)
+
+        pen = QtGui.QPen(QtGui.QColor(color_value, color_value, color_value, 150), 1, QtCore.Qt.PenStyle.SolidLine)
+        painter.setPen(pen)
+
+        metrics = QtGui.QFontMetrics(font)
+        line_height = metrics.height()
+        start_y = int(self.height() / 2) + 10
+
+        for index, message in enumerate(messages):
+            top = start_y + (index * line_height)
+            painter.drawText(
+                QtCore.QRect(0, top, self.width(), line_height + 2),
+                QtCore.Qt.AlignmentFlag.AlignHCenter,
+                message,
+            )
+
+        painter.restore()
+
+    def setAspectLockTarget(self, width, height):
+        self.aspect_lock_target_width = max(1, abs(int(width)))
+        self.aspect_lock_target_height = max(1, abs(int(height)))
+        self.aspect_lock_ratio = self.aspect_lock_target_width / self.aspect_lock_target_height
+
     def __init__(self):
         super(ScreenRuler, self).__init__()
 
@@ -280,6 +336,10 @@ class ScreenRuler(QtWidgets.QWidget):
 
         self.is_transparent = False
         self.invert_colors = False
+        self.aspect_lock_enabled = False
+        self.aspect_lock_target_width = self.window_size_x
+        self.aspect_lock_target_height = self.window_size_y
+        self.aspect_lock_ratio = self.window_size_x / self.window_size_y if self.window_size_y else 1.0
 
         # hiding title bar, always on top
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint | QtCore.Qt.WindowType.WindowStaysOnTopHint)
@@ -303,6 +363,7 @@ class ScreenRuler(QtWidgets.QWidget):
             "R": self.resetWindow,
             "T": self.makeTransparent,
             "I": self.doInvertColors,
+            "L": self.toggleAspectRatioLock,
             "Ctrl+S": self.takeScreenshot,
             "F1": self.displayHelp,
             "H": self.displayHelp,
@@ -386,6 +447,46 @@ class ScreenRuler(QtWidgets.QWidget):
                 move_x = global_x - local_x
                 move_y = global_y - local_y
 
+            on_left = local_x < gsize
+            on_right = local_x > self.window_size_x - gsize
+            on_top = local_y < gsize
+            on_bottom = local_y > self.window_size_y - gsize
+
+            if self.aspect_lock_enabled and resize_x != -99999999 and resize_y != -99999999:
+                ratio = self.aspect_lock_ratio if self.aspect_lock_ratio > 0 else 1.0
+                base_resize_x = resize_x
+                base_resize_y = resize_y
+                delta_x = abs(base_resize_x - self.window_size_x)
+                delta_y = abs(base_resize_y - self.window_size_y)
+
+                if delta_x >= delta_y:
+                    resize_x = max(10, base_resize_x)
+                    resize_y = max(10, int(round(resize_x / ratio)))
+                    resize_x = max(10, int(round(resize_y * ratio)))
+                else:
+                    resize_y = max(10, base_resize_y)
+                    resize_x = max(10, int(round(resize_y * ratio)))
+                    resize_y = max(10, int(round(resize_x / ratio)))
+
+                orig_left = self.opos.x()
+                orig_top = self.opos.y()
+                orig_right = orig_left + self.window_size_x
+                orig_bottom = orig_top + self.window_size_y
+
+                if on_left and not on_right:
+                    move_x = orig_right - resize_x
+                elif on_right and not on_left:
+                    move_x = orig_left
+                elif not on_left and not on_right:
+                    move_x = orig_left + int(round((self.window_size_x - resize_x) / 2))
+
+                if on_top and not on_bottom:
+                    move_y = orig_bottom - resize_y
+                elif on_bottom and not on_top:
+                    move_y = orig_top
+                elif not on_top and not on_bottom:
+                    move_y = orig_top + int(round((self.window_size_y - resize_y) / 2))
+
             if resize_x != -99999999 and resize_y != -99999999:
                 if ctrl_is_held:
                     self.resize(snap(resize_x), snap(resize_y))
@@ -420,6 +521,8 @@ class ScreenRuler(QtWidgets.QWidget):
             self.resize(size_x, size_y)
             self.window_size_x = size_x
             self.window_size_y = size_y
+            if self.aspect_lock_enabled:
+                self.setAspectLockTarget(size_x, size_y)
 
     def flipOrientation(self):
         x = self.width()
@@ -442,6 +545,12 @@ class ScreenRuler(QtWidgets.QWidget):
 
     def doInvertColors(self):
         self.invert_colors = not self.invert_colors
+        self.update()
+
+    def toggleAspectRatioLock(self):
+        self.aspect_lock_enabled = not self.aspect_lock_enabled
+        if self.aspect_lock_enabled:
+            self.setAspectLockTarget(self.width(), self.height())
         self.update()
 
     def takeScreenshot(self):
