@@ -9,6 +9,10 @@ class RulerRenderingOverlaysMixin:
     """Provide hover/edge overlays and status text drawing."""
 
     def drawAlignedScreenEdges(self, painter):
+        is_dragging = self.leftclick or self.middleclick
+        if not is_dragging:
+            return
+
         aligned_edges = self.getScreenEdgeAlignment()
         if not any(aligned_edges.values()):
             return
