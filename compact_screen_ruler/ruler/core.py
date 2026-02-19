@@ -88,6 +88,11 @@ class RulerCore(QtWidgets.QWidget):
         )
         self.disable_clickthrough_button.clicked.connect(self.disableClickthroughMode)
         self.disable_clickthrough_button.hide()
+
+        self.clickthrough_hover_timer = QtCore.QTimer(self)
+        self.clickthrough_hover_timer.setInterval(50)
+        self.clickthrough_hover_timer.timeout.connect(self.updateClickthroughButtonVisibility)
+
         self.updateClickthroughButtonGeometry()
 
     def resizeEvent(self, event):
@@ -111,6 +116,16 @@ class RulerCore(QtWidgets.QWidget):
         x_pos = global_pos.x()
         y_pos = global_pos.y()
         self.disable_clickthrough_button.setGeometry(x_pos, y_pos, button_width, button_height)
+        self.updateClickthroughButtonVisibility()
+
+    def updateClickthroughButtonVisibility(self):
+        if not self.clickthrough_enabled:
+            self.disable_clickthrough_button.hide()
+            return
+
+        cursor_pos = QtGui.QCursor.pos()
+        is_hovering_ruler = self.frameGeometry().contains(cursor_pos)
+        self.disable_clickthrough_button.setVisible(is_hovering_ruler)
 
     def setClickthroughEnabled(self, enabled):
         enabled = bool(enabled)
@@ -120,7 +135,13 @@ class RulerCore(QtWidgets.QWidget):
         self.clickthrough_enabled = enabled
         self.setWindowFlag(QtCore.Qt.WindowType.WindowTransparentForInput, enabled)
         self.show()
-        self.disable_clickthrough_button.setVisible(enabled)
+        if enabled:
+            if not self.clickthrough_hover_timer.isActive():
+                self.clickthrough_hover_timer.start()
+            self.updateClickthroughButtonVisibility()
+        else:
+            self.clickthrough_hover_timer.stop()
+            self.disable_clickthrough_button.hide()
         if enabled:
             self.disable_clickthrough_button.raise_()
             self.updateClickthroughButtonGeometry()
