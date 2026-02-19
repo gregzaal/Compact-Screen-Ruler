@@ -16,6 +16,7 @@ Small always-on-top screen ruler for measuring on-screen distances.
 - Light/dark color inversion and transparency toggle.
 - Aspect ratio lock.
 - Screenshot capture of the screen area behind the ruler.
+- Clickthrough mode to interact with apps behind the ruler.
 
 ## Hotkeys
 
@@ -28,6 +29,7 @@ Small always-on-top screen ruler for measuring on-screen distances.
 - `F`: Flip axes (swap width/height)
 - `R`: Reset to defaults
 - `L`: Toggle aspect ratio lock
+- `C`: Toggle clickthrough mode
 - `Ctrl+S`: Save screenshot of area behind ruler
 - `F1` or `H`: Open help
 

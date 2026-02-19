@@ -114,6 +114,7 @@ class HelpDialog(QtWidgets.QDialog):
             "R\t\tReset the window size and position to defaults\n"
             "T\t\tMake the window transparent\n"
             "I\t\tSwitch between light and dark colors\n"
+            "C\t\tToggle clickthrough mode\n"
             "L\t\tLock/unlock aspect ratio while resizing\n"
             "Ctrl\t\tHold down Ctrl to snap to increments of 5\n"
             "Ctrl + S\t\tTake a screenshot of what's behind the ruler\n"
@@ -300,6 +301,8 @@ class ScreenRuler(QtWidgets.QWidget):
         if self.aspect_lock_enabled:
             ratio_width, ratio_height = simplify_ratio(self.aspect_lock_target_width, self.aspect_lock_target_height)
             messages.append(f"Aspect Ratio Locked [{ratio_width}:{ratio_height}]")
+        if self.clickthrough_enabled:
+            messages.append("Clickthrough Mode Enabled")
         return messages
 
     def drawStatusMessages(self, painter, color_value):
@@ -357,6 +360,7 @@ class ScreenRuler(QtWidgets.QWidget):
         self.aspect_lock_target_height = self.window_size_y
         self.aspect_lock_ratio = self.window_size_x / self.window_size_y if self.window_size_y else 1.0
         self.help_dialog = None
+        self.clickthrough_enabled = False
 
         # hiding title bar, always on top
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint | QtCore.Qt.WindowType.WindowStaysOnTopHint)
@@ -380,6 +384,7 @@ class ScreenRuler(QtWidgets.QWidget):
             "R": self.resetWindow,
             "T": self.makeTransparent,
             "I": self.doInvertColors,
+            "C": self.toggleClickthroughMode,
             "L": self.toggleAspectRatioLock,
             "Ctrl+S": self.takeScreenshot,
             "F1": self.displayHelp,
@@ -389,6 +394,61 @@ class ScreenRuler(QtWidgets.QWidget):
             shortcut = QtGui.QShortcut(QtGui.QKeySequence(keys), self)
             shortcut.activated.connect(callback)
             self.shortcuts.append(shortcut)
+
+        self.disable_clickthrough_button = QtWidgets.QPushButton("Disable Clickthrough Mode", None)
+        self.disable_clickthrough_button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self.disable_clickthrough_button.setWindowFlags(
+            QtCore.Qt.WindowType.Tool
+            | QtCore.Qt.WindowType.FramelessWindowHint
+            | QtCore.Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.disable_clickthrough_button.clicked.connect(self.disableClickthroughMode)
+        self.disable_clickthrough_button.hide()
+        self.updateClickthroughButtonGeometry()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.updateClickthroughButtonGeometry()
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        self.updateClickthroughButtonGeometry()
+
+    def updateClickthroughButtonGeometry(self):
+        button_width = min(
+            max(170, self.disable_clickthrough_button.sizeHint().width() + 16),
+            max(50, self.width() - 16),
+        )
+        button_height = self.disable_clickthrough_button.sizeHint().height()
+        local_x = int((self.width() - button_width) / 2)
+        local_y = max(8, self.height() - button_height - 8)
+        global_pos = self.mapToGlobal(QtCore.QPoint(local_x, local_y))
+        x_pos = global_pos.x()
+        y_pos = global_pos.y()
+        self.disable_clickthrough_button.setGeometry(x_pos, y_pos, button_width, button_height)
+
+    def setClickthroughEnabled(self, enabled):
+        enabled = bool(enabled)
+        if self.clickthrough_enabled == enabled:
+            return
+
+        self.clickthrough_enabled = enabled
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowTransparentForInput, enabled)
+        self.show()
+        self.disable_clickthrough_button.setVisible(enabled)
+        if enabled:
+            self.disable_clickthrough_button.raise_()
+            self.updateClickthroughButtonGeometry()
+        else:
+            self.raise_()
+            self.activateWindow()
+        self.update()
+
+    def toggleClickthroughMode(self):
+        self.setClickthroughEnabled(not self.clickthrough_enabled)
+
+    def disableClickthroughMode(self):
+        self.setClickthroughEnabled(False)
 
     def center(self):
         qr = self.frameGeometry()
