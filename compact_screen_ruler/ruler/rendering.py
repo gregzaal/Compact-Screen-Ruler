@@ -214,7 +214,6 @@ class RulerRenderingMixin:
                 x_tolerance = max(1.0, x_small_step * 0.2)
                 while x_small_pos < self.width() - 1:
                     if not self.isNearStep(x_small_pos, x_major_step, x_tolerance):
-                        xloc = int(round(x_small_pos))
                         if x_tick_config["distinct_subticks"] and self.isNearStep(
                             x_small_pos, x_medium_step, x_tolerance
                         ):
@@ -224,16 +223,32 @@ class RulerRenderingMixin:
                         else:
                             small_index = int(round(x_small_pos / x_small_step))
                             tick_size = (((small_index - 1) % 2) + 1) * 5
-                        painter.drawLine(xloc, 0, xloc, tick_size)
+
+                        if x_tick_config["distinct_subticks"]:
+                            xloc = float(x_small_pos)
+                            painter.drawLine(QtCore.QLineF(xloc, 0.0, xloc, float(tick_size)))
+                        else:
+                            xloc = int(round(x_small_pos))
+                            painter.drawLine(xloc, 0, xloc, tick_size)
+
                         if self.height() > 43:
-                            painter.drawLine(xloc, self.height(), xloc, self.height() - tick_size)
+                            if x_tick_config["distinct_subticks"]:
+                                painter.drawLine(
+                                    QtCore.QLineF(
+                                        xloc,
+                                        float(self.height()),
+                                        xloc,
+                                        float(self.height() - tick_size),
+                                    )
+                                )
+                            else:
+                                painter.drawLine(xloc, self.height(), xloc, self.height() - tick_size)
                     x_small_pos += x_small_step
             if self.height() > 80:
                 y_small_pos = y_small_step
                 y_tolerance = max(1.0, y_small_step * 0.2)
                 while y_small_pos < self.height() - 1:
                     if not self.isNearStep(y_small_pos, y_major_step, y_tolerance):
-                        yloc = int(round(y_small_pos))
                         if y_tick_config["distinct_subticks"] and self.isNearStep(
                             y_small_pos, y_medium_step, y_tolerance
                         ):
@@ -243,9 +258,26 @@ class RulerRenderingMixin:
                         else:
                             small_index = int(round(y_small_pos / y_small_step))
                             tick_size = (((small_index - 1) % 2) + 1) * 5
-                        painter.drawLine(0, yloc, tick_size, yloc)
+
+                        if y_tick_config["distinct_subticks"]:
+                            yloc = float(y_small_pos)
+                            painter.drawLine(QtCore.QLineF(0.0, yloc, float(tick_size), yloc))
+                        else:
+                            yloc = int(round(y_small_pos))
+                            painter.drawLine(0, yloc, tick_size, yloc)
+
                         if self.width() > 43:
-                            painter.drawLine(self.width(), yloc, self.width() - tick_size, yloc)
+                            if y_tick_config["distinct_subticks"]:
+                                painter.drawLine(
+                                    QtCore.QLineF(
+                                        float(self.width()),
+                                        yloc,
+                                        float(self.width() - tick_size),
+                                        yloc,
+                                    )
+                                )
+                            else:
+                                painter.drawLine(self.width(), yloc, self.width() - tick_size, yloc)
                     y_small_pos += y_small_step
 
             pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
