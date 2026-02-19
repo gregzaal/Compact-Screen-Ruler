@@ -25,11 +25,11 @@ class ChooseGeometry(QtWidgets.QDialog):
         self.setWindowTitle("Set Position and Size")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
-        self.label_pos = QtWidgets.QLabel("Position: ", self)
         self.label_size = QtWidgets.QLabel("Size: ", self)
+        self.label_pos = QtWidgets.QLabel("Position: ", self)
         vbox1 = QtWidgets.QVBoxLayout()
-        vbox1.addWidget(self.label_pos)
         vbox1.addWidget(self.label_size)
+        vbox1.addWidget(self.label_pos)
 
         self.size_x = QtWidgets.QSpinBox(self)
         self.size_x.setRange(-99999, 99999)
