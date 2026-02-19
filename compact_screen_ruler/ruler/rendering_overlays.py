@@ -51,9 +51,10 @@ class RulerRenderingOverlaysMixin:
         if not any(zones_to_draw.values()):
             return
 
-        grab_size = self.GRAB_HANDLE_SIZE
         width = self.width()
         height = self.height()
+        grab_size_x = min(self.GRAB_HANDLE_SIZE, max(1, width // 2))
+        grab_size_y = min(self.GRAB_HANDLE_SIZE, max(1, height // 2))
 
         painter.save()
 
@@ -66,29 +67,31 @@ class RulerRenderingOverlaysMixin:
 
         if zones_to_draw["top"]:
             painter.setBrush(edge_brush)
-            painter.drawRect(QtCore.QRect(0, 0, width, grab_size))
+            painter.drawRect(QtCore.QRect(0, 0, width, grab_size_y))
         if zones_to_draw["bottom"]:
             painter.setBrush(edge_brush)
-            painter.drawRect(QtCore.QRect(0, max(height - grab_size, 0), width, grab_size))
+            painter.drawRect(QtCore.QRect(0, max(height - grab_size_y, 0), width, grab_size_y))
         if zones_to_draw["left"]:
             painter.setBrush(edge_brush)
-            painter.drawRect(QtCore.QRect(0, 0, grab_size, height))
+            painter.drawRect(QtCore.QRect(0, 0, grab_size_x, height))
         if zones_to_draw["right"]:
             painter.setBrush(edge_brush)
-            painter.drawRect(QtCore.QRect(max(width - grab_size, 0), 0, grab_size, height))
+            painter.drawRect(QtCore.QRect(max(width - grab_size_x, 0), 0, grab_size_x, height))
 
         if zones_to_draw["left"] and zones_to_draw["top"]:
             painter.setBrush(corner_brush)
-            painter.drawRect(QtCore.QRect(0, 0, grab_size, grab_size))
+            painter.drawRect(QtCore.QRect(0, 0, grab_size_x, grab_size_y))
         if zones_to_draw["right"] and zones_to_draw["top"]:
             painter.setBrush(corner_brush)
-            painter.drawRect(QtCore.QRect(max(width - grab_size, 0), 0, grab_size, grab_size))
+            painter.drawRect(QtCore.QRect(max(width - grab_size_x, 0), 0, grab_size_x, grab_size_y))
         if zones_to_draw["left"] and zones_to_draw["bottom"]:
             painter.setBrush(corner_brush)
-            painter.drawRect(QtCore.QRect(0, max(height - grab_size, 0), grab_size, grab_size))
+            painter.drawRect(QtCore.QRect(0, max(height - grab_size_y, 0), grab_size_x, grab_size_y))
         if zones_to_draw["right"] and zones_to_draw["bottom"]:
             painter.setBrush(corner_brush)
-            painter.drawRect(QtCore.QRect(max(width - grab_size, 0), max(height - grab_size, 0), grab_size, grab_size))
+            painter.drawRect(
+                QtCore.QRect(max(width - grab_size_x, 0), max(height - grab_size_y, 0), grab_size_x, grab_size_y)
+            )
 
         painter.restore()
 

@@ -52,15 +52,16 @@ class RulerGeometryMixin:
         return metrics.boundingRect(draw_rect, flags, text)
 
     def getResizeHitZones(self, local_x, local_y):
-        grab_size = self.GRAB_HANDLE_SIZE
         width = self.width()
         height = self.height()
+        grab_size_x = min(self.GRAB_HANDLE_SIZE, max(1, width // 2))
+        grab_size_y = min(self.GRAB_HANDLE_SIZE, max(1, height // 2))
 
         return {
-            "left": local_x < grab_size,
-            "right": local_x > width - grab_size,
-            "top": local_y < grab_size,
-            "bottom": local_y > height - grab_size,
+            "left": local_x < grab_size_x,
+            "right": local_x > width - grab_size_x,
+            "top": local_y < grab_size_y,
+            "bottom": local_y > height - grab_size_y,
         }
 
     def getResizeCursorShape(self, hover_zones):

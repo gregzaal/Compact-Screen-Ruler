@@ -110,7 +110,8 @@ class RulerInteractionMixin:
 
             local_x = self.offset.x()
             local_y = self.offset.y()
-            gsize = self.GRAB_HANDLE_SIZE
+            gsize_x = min(self.GRAB_HANDLE_SIZE, max(1, self.window_size_x // 2))
+            gsize_y = min(self.GRAB_HANDLE_SIZE, max(1, self.window_size_y // 2))
 
             resize_x = None
             resize_y = None
@@ -118,36 +119,36 @@ class RulerInteractionMixin:
             move_x = None
             move_y = None
 
-            if local_x > self.window_size_x - gsize and local_y > self.window_size_y - gsize:
+            if local_x > self.window_size_x - gsize_x and local_y > self.window_size_y - gsize_y:
                 resize_x = max(self.MIN_WINDOW_SIZE, global_x - window_x + (self.window_size_x - local_x))
                 resize_y = max(self.MIN_WINDOW_SIZE, global_y - window_y + (self.window_size_y - local_y))
-            elif local_x < gsize and local_y > self.window_size_y - gsize:
+            elif local_x < gsize_x and local_y > self.window_size_y - gsize_y:
                 resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x - global_x + self.opos.x() + local_x)
                 resize_y = max(self.MIN_WINDOW_SIZE, global_y - window_y + (self.window_size_y - local_y))
                 move_x = global_x - local_x
                 move_y = window_y
-            elif local_x > self.window_size_x - gsize and local_y < gsize:
+            elif local_x > self.window_size_x - gsize_x and local_y < gsize_y:
                 resize_x = max(self.MIN_WINDOW_SIZE, global_x - window_x + (self.window_size_x - local_x))
                 resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y - global_y + self.opos.y() + local_y)
                 move_x = window_x
                 move_y = global_y - local_y
-            elif local_x < gsize and local_y < gsize:
+            elif local_x < gsize_x and local_y < gsize_y:
                 resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x - global_x + self.opos.x() + local_x)
                 resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y - global_y + self.opos.y() + local_y)
                 move_x = global_x - local_x
                 move_y = global_y - local_y
-            elif local_y > self.window_size_y - gsize:
+            elif local_y > self.window_size_y - gsize_y:
                 resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x)
                 resize_y = max(self.MIN_WINDOW_SIZE, global_y - window_y + (self.window_size_y - local_y))
-            elif local_y < gsize:
+            elif local_y < gsize_y:
                 resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x)
                 resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y - global_y + self.opos.y() + local_y)
                 move_x = window_x
                 move_y = global_y - local_y
-            elif local_x > self.window_size_x - gsize:
+            elif local_x > self.window_size_x - gsize_x:
                 resize_x = max(self.MIN_WINDOW_SIZE, global_x - window_x + (self.window_size_x - local_x))
                 resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y)
-            elif local_x < gsize:
+            elif local_x < gsize_x:
                 resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x - global_x + self.opos.x() + local_x)
                 resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y)
                 move_x = global_x - local_x
@@ -156,10 +157,10 @@ class RulerInteractionMixin:
                 move_x = global_x - local_x
                 move_y = global_y - local_y
 
-            on_left = local_x < gsize
-            on_right = local_x > self.window_size_x - gsize
-            on_top = local_y < gsize
-            on_bottom = local_y > self.window_size_y - gsize
+            on_left = local_x < gsize_x
+            on_right = local_x > self.window_size_x - gsize_x
+            on_top = local_y < gsize_y
+            on_bottom = local_y > self.window_size_y - gsize_y
 
             if self.aspect_lock_enabled and resize_x is not None and resize_y is not None:
                 ratio = self.aspect_lock_ratio if self.aspect_lock_ratio > 0 else 1.0
