@@ -10,19 +10,52 @@ class RulerRenderingMixin:
 
     def getTickConfig(self, axis):
         if self.measurement_unit == "px":
-            return 5.0, 50.0, 5.0
+            return {
+                "small_step_px": 5.0,
+                "medium_step_px": 10.0,
+                "major_step_px": 50.0,
+                "major_unit": 5.0,
+                "distinct_subticks": False,
+            }
 
-        minor_unit = 0.1
         major_unit = 1.0
-        minor_step_px = self.convertUnitToPixels(minor_unit, axis, self.measurement_unit)
+        if self.measurement_unit == "cm":
+            medium_unit = 0.5
+            small_unit = 0.1
+        else:
+            medium_unit = 0.25
+            small_unit = 0.125
+
+        small_step_px = self.convertUnitToPixels(small_unit, axis, self.measurement_unit)
+        medium_step_px = self.convertUnitToPixels(medium_unit, axis, self.measurement_unit)
         major_step_px = self.convertUnitToPixels(major_unit, axis, self.measurement_unit)
 
-        if minor_step_px <= 0 or major_step_px <= 0:
-            return 5.0, 50.0, 5.0
+        if small_step_px <= 0 or medium_step_px <= 0 or major_step_px <= 0:
+            return {
+                "small_step_px": 5.0,
+                "medium_step_px": 10.0,
+                "major_step_px": 50.0,
+                "major_unit": 5.0,
+                "distinct_subticks": False,
+            }
 
-        minor_step_px = max(3.0, minor_step_px)
-        major_step_px = max(20.0, major_step_px, minor_step_px * 2.0)
-        return minor_step_px, major_step_px, major_unit
+        small_step_px = max(3.0, small_step_px)
+        medium_step_px = max(6.0, medium_step_px)
+        major_step_px = max(20.0, major_step_px)
+        return {
+            "small_step_px": small_step_px,
+            "medium_step_px": medium_step_px,
+            "major_step_px": major_step_px,
+            "major_unit": major_unit,
+            "distinct_subticks": True,
+        }
+
+    def isNearStep(self, value, step, tolerance):
+        if step <= 0:
+            return False
+        nearest_index = int(round(value / step))
+        nearest_value = nearest_index * step
+        return abs(value - nearest_value) <= tolerance
 
     def formatTickLabel(self, value):
         if self.measurement_unit == "px":
@@ -166,44 +199,54 @@ class RulerRenderingMixin:
 
             pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 128), 1, QtCore.Qt.PenStyle.SolidLine)
             painter.setPen(pen)
-            x_minor_step, x_major_step, x_major_unit = self.getTickConfig("x")
-            y_minor_step, y_major_step, y_major_unit = self.getTickConfig("y")
+            x_tick_config = self.getTickConfig("x")
+            y_tick_config = self.getTickConfig("y")
+            x_small_step = x_tick_config["small_step_px"]
+            x_medium_step = x_tick_config["medium_step_px"]
+            x_major_step = x_tick_config["major_step_px"]
+            x_major_unit = x_tick_config["major_unit"]
+            y_small_step = y_tick_config["small_step_px"]
+            y_medium_step = y_tick_config["medium_step_px"]
+            y_major_step = y_tick_config["major_step_px"]
+            y_major_unit = y_tick_config["major_unit"]
             if self.width() >= 88:
-                x_minor_index = 1
-                x_minor_pos = x_minor_step
-                while x_minor_pos < self.width() - 1:
-                    nearest_major_index = int(round(x_minor_pos / x_major_step))
-                    nearest_major_pos = nearest_major_index * x_major_step
-                    if abs(x_minor_pos - nearest_major_pos) > max(1.0, x_minor_step * 0.2):
-                        xloc = int(round(x_minor_pos))
-                        tick_size = (((x_minor_index - 1) % 2) + 1) * 5
+                x_small_pos = x_small_step
+                x_tolerance = max(1.0, x_small_step * 0.2)
+                while x_small_pos < self.width() - 1:
+                    if not self.isNearStep(x_small_pos, x_major_step, x_tolerance):
+                        xloc = int(round(x_small_pos))
+                        if x_tick_config["distinct_subticks"] and self.isNearStep(
+                            x_small_pos, x_medium_step, x_tolerance
+                        ):
+                            tick_size = 10
+                        elif x_tick_config["distinct_subticks"]:
+                            tick_size = 5
+                        else:
+                            small_index = int(round(x_small_pos / x_small_step))
+                            tick_size = (((small_index - 1) % 2) + 1) * 5
                         painter.drawLine(xloc, 0, xloc, tick_size)
                         if self.height() > 43:
                             painter.drawLine(xloc, self.height(), xloc, self.height() - tick_size)
-                    x_minor_index += 1
-                    x_minor_pos += x_minor_step
+                    x_small_pos += x_small_step
             if self.height() > 80:
-                if self.width() >= 88:
-                    rangestart = 2
-                    rangeend = -1
-                else:
-                    rangestart = 0
-                    rangeend = 1
-
-                y_minor_index = max(1, rangestart)
-                y_minor_pos = y_minor_index * y_minor_step
-                y_limit = self.height() + (rangeend * y_minor_step)
-                while y_minor_pos < y_limit and y_minor_pos < self.height() - 1:
-                    nearest_major_index = int(round(y_minor_pos / y_major_step))
-                    nearest_major_pos = nearest_major_index * y_major_step
-                    if abs(y_minor_pos - nearest_major_pos) > max(1.0, y_minor_step * 0.2):
-                        yloc = int(round(y_minor_pos))
-                        tick_size = (((y_minor_index - 1) % 2) + 1) * 5
+                y_small_pos = y_small_step
+                y_tolerance = max(1.0, y_small_step * 0.2)
+                while y_small_pos < self.height() - 1:
+                    if not self.isNearStep(y_small_pos, y_major_step, y_tolerance):
+                        yloc = int(round(y_small_pos))
+                        if y_tick_config["distinct_subticks"] and self.isNearStep(
+                            y_small_pos, y_medium_step, y_tolerance
+                        ):
+                            tick_size = 10
+                        elif y_tick_config["distinct_subticks"]:
+                            tick_size = 5
+                        else:
+                            small_index = int(round(y_small_pos / y_small_step))
+                            tick_size = (((small_index - 1) % 2) + 1) * 5
                         painter.drawLine(0, yloc, tick_size, yloc)
                         if self.width() > 43:
                             painter.drawLine(self.width(), yloc, self.width() - tick_size, yloc)
-                    y_minor_index += 1
-                    y_minor_pos += y_minor_step
+                    y_small_pos += y_small_step
 
             pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
             painter.setPen(pen)
