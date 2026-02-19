@@ -92,7 +92,8 @@ class HelpDialog(QtWidgets.QDialog):
         self.setWindowTitle("Help and Info")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
-        self.setFixedSize(400, 225)
+        self.resize(420, 250)
+        self.setMinimumSize(360, 220)
 
         text = (
             "This program is a simple tool you can use to measure distances on your screen, "
@@ -110,9 +111,14 @@ class HelpDialog(QtWidgets.QDialog):
             "Ctrl + S\t\tTake a screenshot of what's behind the ruler\n"
             "F1 / H\t\tDisplay this Help dialog"
         )
-        self.main_label = QtWidgets.QLabel(text, self)
-        self.main_label.setGeometry(10, 0, 380, 215)
+        self.main_label = QtWidgets.QLabel(text)
         self.main_label.setWordWrap(True)
+        self.main_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignLeft)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(0)
+        layout.addWidget(self.main_label)
 
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
 
