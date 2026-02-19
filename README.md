@@ -52,7 +52,7 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-py -3.11 screen_ruler.pyw
+py -3.11 screen_ruler.py
 ```
 
 Or use:

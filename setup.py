@@ -14,7 +14,7 @@ setup(
     options={"build_exe": build_exe_options},
     executables=[
         Executable(
-            "screen_ruler.pyw",
+            "screen_ruler.py",
             base=base,
             target_name="screen_ruler.exe",
             icon="icon.ico",
