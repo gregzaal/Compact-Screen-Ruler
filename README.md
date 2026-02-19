@@ -26,6 +26,7 @@ Small always-on-top screen ruler for measuring on-screen distances.
 
 ## Hotkeys
 
+- `Right Click`: Measuring mode
 - `Q` or `Ctrl+Q`: Quit
 - `Ctrl` (hold): Snap move/resize to 5 px
 - `S`: Set exact position and size
