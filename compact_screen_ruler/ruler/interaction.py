@@ -21,8 +21,10 @@ class RulerInteractionMixin:
         if self.leftclick:
             return
 
-        is_over_resolution_text = not self.is_transparent and self.resolution_text_rect.contains(
-            QtCore.QPoint(local_x, local_y)
+        is_over_resolution_text = (
+            self.resolution_text_click_enabled
+            and not self.is_transparent
+            and self.resolution_text_rect.contains(QtCore.QPoint(local_x, local_y))
         )
         if self.resolution_text_hovered != is_over_resolution_text:
             self.resolution_text_hovered = is_over_resolution_text
@@ -38,6 +40,7 @@ class RulerInteractionMixin:
         local_pos = event.position().toPoint()
         self.left_press_started_on_resolution_text = (
             event.button() == QtCore.Qt.MouseButton.LeftButton
+            and self.resolution_text_click_enabled
             and self.resolution_text_rect.contains(local_pos)
             and not self.is_transparent
         )
@@ -229,6 +232,7 @@ class RulerInteractionMixin:
         release_pos = event.position().toPoint()
         should_open_size_dialog = (
             event.button() == QtCore.Qt.MouseButton.LeftButton
+            and self.resolution_text_click_enabled
             and self.left_press_started_on_resolution_text
             and not self.left_dragged_since_press
             and not self.is_transparent

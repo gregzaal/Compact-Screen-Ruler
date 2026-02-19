@@ -41,6 +41,7 @@ class RulerCore(QtWidgets.QWidget):
         self.active_interaction_zones = {"left": False, "right": False, "top": False, "bottom": False}
         self.resolution_text_hovered = False
         self.resolution_text_rect = QtCore.QRect()
+        self.resolution_text_click_enabled = False
         self.left_press_started_on_resolution_text = False
         self.left_dragged_since_press = False
         self.press_global_pos = QtCore.QPoint(0, 0)

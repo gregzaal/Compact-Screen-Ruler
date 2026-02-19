@@ -130,6 +130,7 @@ class RulerRenderingMixin:
         col2 = 100 if not self.invert_colors else 155
         col3 = 0 if not self.invert_colors else 255
         self.resolution_text_rect = QtCore.QRect()
+        self.resolution_text_click_enabled = False
 
         painter = QtGui.QPainter()
         painter.begin(self)
@@ -157,6 +158,12 @@ class RulerRenderingMixin:
         painter.setPen(pen)
 
         if not self.is_transparent:
+            right_label_limit = self.width() - 37
+            if self.height() <= 80:
+                preview_resolution_text = self.buildResolutionText(self.width(), self.height(), include_y=False)
+                preview_resolution_width = painter.fontMetrics().horizontalAdvance(preview_resolution_text)
+                right_label_limit = self.width() - max(37, preview_resolution_width + 12)
+
             pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 128), 1, QtCore.Qt.PenStyle.SolidLine)
             painter.setPen(pen)
             x_minor_step, x_major_step, x_major_unit = self.getTickConfig("x")
@@ -210,7 +217,7 @@ class RulerRenderingMixin:
                     if self.height() > 52:
                         painter.drawLine(xloc, self.height(), xloc, self.height() - 20)
 
-                    if xloc < self.width() - 37 or self.height() > 80:
+                    if xloc < right_label_limit or self.height() > 80:
                         if self.height() > 80:
                             if xloc < self.width() - 37:
                                 painter.drawText(
@@ -292,6 +299,7 @@ class RulerRenderingMixin:
                 self.resolution_text_rect = self.getResolutionTextRect(
                     resolution_draw_rect, resolution_alignment, resolution_text
                 )
+                self.resolution_text_click_enabled = True
                 self.drawResolutionText(painter, resolution_draw_rect, resolution_alignment, resolution_text)
                 self.drawStatusMessages(painter, col3)
             elif self.height() > 80 and self.width() < 88:
@@ -304,10 +312,11 @@ class RulerRenderingMixin:
                 self.drawResolutionText(painter, resolution_draw_rect, resolution_alignment, resolution_text)
             else:
                 resolution_text = self.buildResolutionText(size_x, size_y, include_y=False)
-                resolution_draw_rect = QtCore.QRect(
-                    0, int(max(self.height() / 2 - 6.5, 20)), self.width() - 3, self.height()
-                )
-                resolution_alignment = QtCore.Qt.AlignmentFlag.AlignRight
+                if self.height() < 54:
+                    resolution_draw_rect = QtCore.QRect(0, 19, self.width() - 3, 15)
+                else:
+                    resolution_draw_rect = QtCore.QRect(0, 0, self.width() - 3, self.height())
+                resolution_alignment = QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
                 self.resolution_text_rect = self.getResolutionTextRect(
                     resolution_draw_rect, resolution_alignment, resolution_text
                 )
