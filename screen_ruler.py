@@ -136,10 +136,120 @@ class ScreenRuler(QtWidgets.QWidget):
     MIN_WINDOW_SIZE = 10
     GRAB_HANDLE_SIZE = 21
 
+    def getResolutionTextRect(self, draw_rect, alignment, text):
+        metrics = QtGui.QFontMetrics(self.font())
+        flags = int(alignment) | int(QtCore.Qt.TextFlag.TextSingleLine)
+        return metrics.boundingRect(draw_rect, flags, text)
+
+    def getResizeHitZones(self, local_x, local_y):
+        grab_size = self.GRAB_HANDLE_SIZE
+        width = self.width()
+        height = self.height()
+
+        return {
+            "left": local_x < grab_size,
+            "right": local_x > width - grab_size,
+            "top": local_y < grab_size,
+            "bottom": local_y > height - grab_size,
+        }
+
+    def updateHoverState(self, local_x, local_y):
+        hover_zones = self.getResizeHitZones(local_x, local_y)
+        if hover_zones != self.hover_zones:
+            self.hover_zones = hover_zones
+            self.update()
+
+        if self.leftclick:
+            return
+
+        is_over_resolution_text = not self.is_transparent and self.resolution_text_rect.contains(
+            QtCore.QPoint(local_x, local_y)
+        )
+        if self.resolution_text_hovered != is_over_resolution_text:
+            self.resolution_text_hovered = is_over_resolution_text
+            self.update()
+
+        if is_over_resolution_text:
+            self.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+            return
+
+        on_left = hover_zones["left"]
+        on_right = hover_zones["right"]
+        on_top = hover_zones["top"]
+        on_bottom = hover_zones["bottom"]
+
+        if (on_left and on_top) or (on_right and on_bottom):
+            cursor_shape = QtCore.Qt.CursorShape.SizeFDiagCursor
+        elif (on_right and on_top) or (on_left and on_bottom):
+            cursor_shape = QtCore.Qt.CursorShape.SizeBDiagCursor
+        elif on_left or on_right:
+            cursor_shape = QtCore.Qt.CursorShape.SizeHorCursor
+        elif on_top or on_bottom:
+            cursor_shape = QtCore.Qt.CursorShape.SizeVerCursor
+        else:
+            cursor_shape = QtCore.Qt.CursorShape.OpenHandCursor
+
+        self.setCursor(cursor_shape)
+
+    def drawResolutionText(self, painter, draw_rect, alignment, text):
+        painter.save()
+        if self.resolution_text_hovered:
+            text_font = QtGui.QFont(painter.font())
+            text_font.setUnderline(True)
+            painter.setFont(text_font)
+        painter.drawText(draw_rect, alignment, text)
+        painter.restore()
+
+    def drawHoverHints(self, painter, base_color):
+        if not any(self.hover_zones.values()):
+            return
+
+        grab_size = self.GRAB_HANDLE_SIZE
+        width = self.width()
+        height = self.height()
+
+        painter.save()
+
+        edge_alpha = 55 if not self.is_transparent else 35
+        corner_alpha = 95 if not self.is_transparent else 65
+        edge_brush = QtGui.QBrush(QtGui.QColor(base_color, base_color, base_color, edge_alpha))
+        corner_brush = QtGui.QBrush(QtGui.QColor(base_color, base_color, base_color, corner_alpha))
+        pen = QtGui.QPen(QtGui.QColor(base_color, base_color, base_color, 0), 1, QtCore.Qt.PenStyle.SolidLine)
+        painter.setPen(pen)
+
+        if self.hover_zones["top"]:
+            painter.setBrush(edge_brush)
+            painter.drawRect(QtCore.QRect(0, 0, width, grab_size))
+        if self.hover_zones["bottom"]:
+            painter.setBrush(edge_brush)
+            painter.drawRect(QtCore.QRect(0, max(height - grab_size, 0), width, grab_size))
+        if self.hover_zones["left"]:
+            painter.setBrush(edge_brush)
+            painter.drawRect(QtCore.QRect(0, 0, grab_size, height))
+        if self.hover_zones["right"]:
+            painter.setBrush(edge_brush)
+            painter.drawRect(QtCore.QRect(max(width - grab_size, 0), 0, grab_size, height))
+
+        if self.hover_zones["left"] and self.hover_zones["top"]:
+            painter.setBrush(corner_brush)
+            painter.drawRect(QtCore.QRect(0, 0, grab_size, grab_size))
+        if self.hover_zones["right"] and self.hover_zones["top"]:
+            painter.setBrush(corner_brush)
+            painter.drawRect(QtCore.QRect(max(width - grab_size, 0), 0, grab_size, grab_size))
+        if self.hover_zones["left"] and self.hover_zones["bottom"]:
+            painter.setBrush(corner_brush)
+            painter.drawRect(QtCore.QRect(0, max(height - grab_size, 0), grab_size, grab_size))
+        if self.hover_zones["right"] and self.hover_zones["bottom"]:
+            painter.setBrush(corner_brush)
+            painter.drawRect(QtCore.QRect(max(width - grab_size, 0), max(height - grab_size, 0), grab_size, grab_size))
+
+        painter.restore()
+
     def paintEvent(self, _event):
         col1 = 255 if not self.invert_colors else 0
         col2 = 100 if not self.invert_colors else 155
         col3 = 0 if not self.invert_colors else 255
+        self.resolution_text_rect = QtCore.QRect()
 
         space = 5
         painter = QtGui.QPainter()
@@ -161,6 +271,8 @@ class ScreenRuler(QtWidgets.QWidget):
             painter.drawRect(QtCore.QRect(0, 0, max(self.width(), 0), max(self.height(), 0)))
         else:
             painter.drawRect(QtCore.QRect(21, 21, max(self.width() - 21 * 2, 0), max(self.height() - 21 * 2, 0)))
+
+        self.drawHoverHints(painter, col1)
 
         pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
         painter.setPen(pen)
@@ -275,23 +387,46 @@ class ScreenRuler(QtWidgets.QWidget):
                     painter.drawLine(0, mouse_ypos, self.width(), mouse_ypos)
 
             if self.height() > 80 and self.width() >= 88:
-                painter.drawText(
-                    QtCore.QRect(0, 0, self.width(), self.height()),
-                    QtCore.Qt.AlignmentFlag.AlignCenter,
-                    f"{size_x} x {size_y}",
+                resolution_text = f"{size_x} x {size_y}"
+                resolution_draw_rect = QtCore.QRect(0, 0, self.width(), self.height())
+                resolution_alignment = QtCore.Qt.AlignmentFlag.AlignCenter
+                self.resolution_text_rect = self.getResolutionTextRect(
+                    resolution_draw_rect, resolution_alignment, resolution_text
+                )
+                self.drawResolutionText(
+                    painter,
+                    resolution_draw_rect,
+                    resolution_alignment,
+                    resolution_text,
                 )
                 self.drawStatusMessages(painter, col3)
             elif self.height() > 80 and self.width() < 88:
-                painter.drawText(
-                    QtCore.QRect(0, self.height() - 37, self.width(), 20),
-                    QtCore.Qt.AlignmentFlag.AlignCenter,
-                    str(size_y),
+                resolution_text = str(size_y)
+                resolution_draw_rect = QtCore.QRect(0, self.height() - 37, self.width(), 20)
+                resolution_alignment = QtCore.Qt.AlignmentFlag.AlignCenter
+                self.resolution_text_rect = self.getResolutionTextRect(
+                    resolution_draw_rect, resolution_alignment, resolution_text
+                )
+                self.drawResolutionText(
+                    painter,
+                    resolution_draw_rect,
+                    resolution_alignment,
+                    resolution_text,
                 )
             else:
-                painter.drawText(
-                    QtCore.QRect(0, int(max(self.height() / 2 - 6.5, 20)), self.width() - 3, self.height()),
-                    QtCore.Qt.AlignmentFlag.AlignRight,
-                    str(size_x),
+                resolution_text = str(size_x)
+                resolution_draw_rect = QtCore.QRect(
+                    0, int(max(self.height() / 2 - 6.5, 20)), self.width() - 3, self.height()
+                )
+                resolution_alignment = QtCore.Qt.AlignmentFlag.AlignRight
+                self.resolution_text_rect = self.getResolutionTextRect(
+                    resolution_draw_rect, resolution_alignment, resolution_text
+                )
+                self.drawResolutionText(
+                    painter,
+                    resolution_draw_rect,
+                    resolution_alignment,
+                    resolution_text,
                 )
 
         painter.end()
@@ -361,6 +496,10 @@ class ScreenRuler(QtWidgets.QWidget):
         self.aspect_lock_ratio = self.window_size_x / self.window_size_y if self.window_size_y else 1.0
         self.help_dialog = None
         self.clickthrough_enabled = False
+        self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
+        self.resolution_text_hovered = False
+        self.resolution_text_rect = QtCore.QRect()
+        self.offset = QtCore.QPoint(0, 0)
 
         # hiding title bar, always on top
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint | QtCore.Qt.WindowType.WindowStaysOnTopHint)
@@ -373,6 +512,7 @@ class ScreenRuler(QtWidgets.QWidget):
         self.center()
 
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setMouseTracking(True)
 
         # Hotkeys
         self.shortcuts = []
@@ -458,6 +598,17 @@ class ScreenRuler(QtWidgets.QWidget):
         self.move(qr.topLeft())
 
     def mousePressEvent(self, event):
+        local_pos = event.position().toPoint()
+        if (
+            event.button() == QtCore.Qt.MouseButton.LeftButton
+            and self.resolution_text_rect.contains(local_pos)
+            and not self.is_transparent
+        ):
+            self.leftclick = False
+            self.drawPickPos = False
+            self.setWindowSize()
+            return
+
         self.leftclick = event.button() == QtCore.Qt.MouseButton.LeftButton
         self.drawPickPos = event.button() == QtCore.Qt.MouseButton.RightButton
         self.offset = event.pos()
@@ -470,13 +621,15 @@ class ScreenRuler(QtWidgets.QWidget):
         global_pos = event.globalPosition()
         global_x = int(global_pos.x())
         global_y = int(global_pos.y())
-        local_x = self.offset.x()
-        local_y = self.offset.y()
+        local_pos = event.position().toPoint()
+        self.updateHoverState(local_pos.x(), local_pos.y())
 
         self.mouse_x = global_x
         self.mouse_y = global_y
 
         if self.leftclick:
+            local_x = self.offset.x()
+            local_y = self.offset.y()
             gsize = self.GRAB_HANDLE_SIZE
 
             resize_x = None
@@ -577,7 +730,15 @@ class ScreenRuler(QtWidgets.QWidget):
         else:
             self.update()
 
+    def leaveEvent(self, event):
+        super().leaveEvent(event)
+        self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
+        self.resolution_text_hovered = False
+        self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
+        self.update()
+
     def mouseReleaseEvent(self, event):
+        self.leftclick = False
         self.window_size_x = self.width()
         self.window_size_y = self.height()
         self.drawPickPos = False
