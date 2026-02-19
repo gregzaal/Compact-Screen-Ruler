@@ -613,6 +613,9 @@ class ScreenRuler(QtWidgets.QWidget):
         self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
         self.resolution_text_hovered = False
         self.resolution_text_rect = QtCore.QRect()
+        self.left_press_started_on_resolution_text = False
+        self.left_dragged_since_press = False
+        self.press_global_pos = QtCore.QPoint(0, 0)
         self.offset = QtCore.QPoint(0, 0)
 
         # hiding title bar, always on top
@@ -713,15 +716,13 @@ class ScreenRuler(QtWidgets.QWidget):
 
     def mousePressEvent(self, event):
         local_pos = event.position().toPoint()
-        if (
+        self.left_press_started_on_resolution_text = (
             event.button() == QtCore.Qt.MouseButton.LeftButton
             and self.resolution_text_rect.contains(local_pos)
             and not self.is_transparent
-        ):
-            self.leftclick = False
-            self.drawPickPos = False
-            self.setWindowSize()
-            return
+        )
+        self.left_dragged_since_press = False
+        self.press_global_pos = event.globalPosition().toPoint()
 
         self.leftclick = event.button() == QtCore.Qt.MouseButton.LeftButton
         self.middleclick = event.button() == QtCore.Qt.MouseButton.MiddleButton
@@ -764,6 +765,10 @@ class ScreenRuler(QtWidgets.QWidget):
                 self.move(move_x, move_y)
             self.update()
         elif self.leftclick:
+            drag_distance = (global_pos.toPoint() - self.press_global_pos).manhattanLength()
+            if drag_distance >= QtWidgets.QApplication.startDragDistance():
+                self.left_dragged_since_press = True
+
             local_x = self.offset.x()
             local_y = self.offset.y()
             gsize = self.GRAB_HANDLE_SIZE
@@ -896,14 +901,28 @@ class ScreenRuler(QtWidgets.QWidget):
         self.update()
 
     def mouseReleaseEvent(self, event):
+        release_pos = event.position().toPoint()
+        should_open_size_dialog = (
+            event.button() == QtCore.Qt.MouseButton.LeftButton
+            and self.left_press_started_on_resolution_text
+            and not self.left_dragged_since_press
+            and not self.is_transparent
+            and self.resolution_text_rect.contains(release_pos)
+        )
+
         self.leftclick = False
         self.middleclick = False
         self.window_size_x = self.width()
         self.window_size_y = self.height()
         self.drawPickPos = False
+        self.left_press_started_on_resolution_text = False
+        self.left_dragged_since_press = False
         local_pos = self.mapFromGlobal(QtGui.QCursor.pos())
         self.updateHoverState(local_pos.x(), local_pos.y())
         self.update()
+
+        if should_open_size_dialog:
+            self.setWindowSize()
 
     def setWindowSize(self):
         dialog = ChooseGeometry([self.pos().x(), self.pos().y(), self.window_size_x, self.window_size_y])
