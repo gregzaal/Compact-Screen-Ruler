@@ -20,6 +20,7 @@ Current version: **v1.0.0**
 - Set exact position/size.
 - Light/dark color inversion and transparency toggle.
 - Aspect ratio lock.
+- Unit toggle for measurements (px, cm, inches).
 - Screenshot capture of the screen area behind the ruler.
 - Clickthrough mode to interact with apps behind the ruler.
 
@@ -35,6 +36,7 @@ Current version: **v1.0.0**
 - `F`: Flip axes (swap width/height)
 - `R`: Reset to defaults
 - `L`: Toggle aspect ratio lock
+- `U`: Toggle measurement units (px, cm, in)
 - `C`: Toggle clickthrough mode
 - `Ctrl+S`: Save screenshot of area behind ruler
 - `F1` or `H`: Open help

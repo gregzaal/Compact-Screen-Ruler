@@ -8,6 +8,44 @@ from ..constants import SCREEN_EDGE_SNAP_DISTANCE
 class RulerGeometryMixin:
     """Provide geometry helpers used by rendering and interactions."""
 
+    def getPixelsPerInch(self, axis):
+        screen = self.getCenterScreen()
+        if not screen:
+            return 0.0
+
+        axis_name = str(axis).lower()
+        if axis_name == "y":
+            pixels_per_inch = float(screen.physicalDotsPerInchY())
+        else:
+            pixels_per_inch = float(screen.physicalDotsPerInchX())
+
+        if pixels_per_inch <= 0:
+            if axis_name == "y":
+                pixels_per_inch = float(screen.logicalDotsPerInchY())
+            else:
+                pixels_per_inch = float(screen.logicalDotsPerInchX())
+
+        if pixels_per_inch <= 0:
+            return 0.0
+
+        scale_factor = float(screen.devicePixelRatio())
+        if scale_factor <= 0:
+            scale_factor = 1.0
+
+        return pixels_per_inch / scale_factor
+
+    def getCenterScreen(self, x_pos=None, y_pos=None, width=None, height=None):
+        if x_pos is None or y_pos is None or width is None or height is None:
+            frame = self.frameGeometry()
+            center_point = frame.center()
+        else:
+            center_point = QtCore.QPoint(int(x_pos + width / 2), int(y_pos + height / 2))
+
+        screen = QtGui.QGuiApplication.screenAt(center_point)
+        if not screen:
+            screen = QtGui.QGuiApplication.primaryScreen()
+        return screen
+
     def getResolutionTextRect(self, draw_rect, alignment, text):
         metrics = QtGui.QFontMetrics(self.font())
         flags = int(alignment) | int(QtCore.Qt.TextFlag.TextSingleLine)
@@ -42,11 +80,41 @@ class RulerGeometryMixin:
         return QtCore.Qt.CursorShape.OpenHandCursor
 
     def getScreenGeometryForRect(self, x_pos, y_pos, width, height):
-        center_point = QtCore.QPoint(int(x_pos + width / 2), int(y_pos + height / 2))
-        screen = QtGui.QGuiApplication.screenAt(center_point)
-        if not screen:
-            screen = QtGui.QGuiApplication.primaryScreen()
+        screen = self.getCenterScreen(x_pos, y_pos, width, height)
         return screen.availableGeometry() if screen else QtCore.QRect()
+
+    def convertPixelsToUnit(self, value_px, axis, unit):
+        if unit == "px":
+            return float(value_px)
+
+        pixels_per_inch = self.getPixelsPerInch(axis)
+        if pixels_per_inch <= 0:
+            return float(value_px)
+
+        inches = float(value_px) / pixels_per_inch
+        if unit == "cm":
+            return inches * 2.54
+        if unit == "in":
+            return inches
+        return float(value_px)
+
+    def convertUnitToPixels(self, value, axis, unit):
+        if unit == "px":
+            return float(value)
+
+        pixels_per_inch = self.getPixelsPerInch(axis)
+        if pixels_per_inch <= 0:
+            return float(value)
+
+        unit_name = str(unit).lower()
+        if unit_name == "cm":
+            inches = float(value) / 2.54
+        elif unit_name == "in":
+            inches = float(value)
+        else:
+            return float(value)
+
+        return inches * pixels_per_inch
 
     def snapPositionToScreenEdges(self, x_pos, y_pos, width, height):
         screen_rect = self.getScreenGeometryForRect(x_pos, y_pos, width, height)

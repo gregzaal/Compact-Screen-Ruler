@@ -106,6 +106,7 @@ class HelpDialog(QtWidgets.QDialog):
             "I\t\tSwitch between light and dark colors\n"
             "C\t\tToggle clickthrough mode\n"
             "L\t\tLock/unlock aspect ratio while resizing\n"
+            "U\t\tToggle units (px, cm, in)\n"
             "Ctrl\t\tHold down Ctrl to snap to increments of 5\n"
             "Shift\t\tHold down Shift to disable screen-edge snapping\n"
             "Ctrl + S\t\tTake a screenshot of what's behind the ruler\n"

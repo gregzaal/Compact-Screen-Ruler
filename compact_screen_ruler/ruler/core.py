@@ -34,6 +34,7 @@ class RulerCore(QtWidgets.QWidget):
         self.aspect_lock_target_width = self.window_size_x
         self.aspect_lock_target_height = self.window_size_y
         self.aspect_lock_ratio = self.window_size_x / self.window_size_y if self.window_size_y else 1.0
+        self.measurement_unit = "px"
         self.help_dialog = None
         self.clickthrough_enabled = False
         self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
@@ -67,6 +68,7 @@ class RulerCore(QtWidgets.QWidget):
             "I": self.doInvertColors,
             "C": self.toggleClickthroughMode,
             "L": self.toggleAspectRatioLock,
+            "U": self.toggleMeasurementUnit,
             "Ctrl+S": self.takeScreenshot,
             "F1": self.displayHelp,
             "H": self.displayHelp,
@@ -94,6 +96,7 @@ class RulerCore(QtWidgets.QWidget):
     def moveEvent(self, event):
         super().moveEvent(event)
         self.updateClickthroughButtonGeometry()
+        self.update()
 
     def updateClickthroughButtonGeometry(self):
         button_width = min(
@@ -183,6 +186,12 @@ class RulerCore(QtWidgets.QWidget):
         self.aspect_lock_enabled = not self.aspect_lock_enabled
         if self.aspect_lock_enabled:
             self.setAspectLockTarget(self.width(), self.height())
+        self.update()
+
+    def toggleMeasurementUnit(self):
+        units = ("px", "cm", "in")
+        current_index = units.index(self.measurement_unit) if self.measurement_unit in units else 0
+        self.measurement_unit = units[(current_index + 1) % len(units)]
         self.update()
 
     def takeScreenshot(self):
