@@ -153,11 +153,31 @@ class ScreenRuler(QtWidgets.QWidget):
             "bottom": local_y > height - grab_size,
         }
 
+    def getResizeCursorShape(self, hover_zones):
+        on_left = hover_zones["left"]
+        on_right = hover_zones["right"]
+        on_top = hover_zones["top"]
+        on_bottom = hover_zones["bottom"]
+
+        if (on_left and on_top) or (on_right and on_bottom):
+            return QtCore.Qt.CursorShape.SizeFDiagCursor
+        if (on_right and on_top) or (on_left and on_bottom):
+            return QtCore.Qt.CursorShape.SizeBDiagCursor
+        if on_left or on_right:
+            return QtCore.Qt.CursorShape.SizeHorCursor
+        if on_top or on_bottom:
+            return QtCore.Qt.CursorShape.SizeVerCursor
+        return QtCore.Qt.CursorShape.OpenHandCursor
+
     def updateHoverState(self, local_x, local_y):
         hover_zones = self.getResizeHitZones(local_x, local_y)
         if hover_zones != self.hover_zones:
             self.hover_zones = hover_zones
             self.update()
+
+        if self.middleclick:
+            self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
+            return
 
         if self.leftclick:
             return
@@ -173,23 +193,7 @@ class ScreenRuler(QtWidgets.QWidget):
             self.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
             return
 
-        on_left = hover_zones["left"]
-        on_right = hover_zones["right"]
-        on_top = hover_zones["top"]
-        on_bottom = hover_zones["bottom"]
-
-        if (on_left and on_top) or (on_right and on_bottom):
-            cursor_shape = QtCore.Qt.CursorShape.SizeFDiagCursor
-        elif (on_right and on_top) or (on_left and on_bottom):
-            cursor_shape = QtCore.Qt.CursorShape.SizeBDiagCursor
-        elif on_left or on_right:
-            cursor_shape = QtCore.Qt.CursorShape.SizeHorCursor
-        elif on_top or on_bottom:
-            cursor_shape = QtCore.Qt.CursorShape.SizeVerCursor
-        else:
-            cursor_shape = QtCore.Qt.CursorShape.OpenHandCursor
-
-        self.setCursor(cursor_shape)
+        self.setCursor(self.getResizeCursorShape(hover_zones))
 
     def drawResolutionText(self, painter, draw_rect, alignment, text):
         painter.save()
@@ -483,6 +487,7 @@ class ScreenRuler(QtWidgets.QWidget):
         super().__init__()
 
         self.leftclick = False
+        self.middleclick = False
         self.drawPickPos = False
 
         self.window_size_x = 690
@@ -610,9 +615,19 @@ class ScreenRuler(QtWidgets.QWidget):
             return
 
         self.leftclick = event.button() == QtCore.Qt.MouseButton.LeftButton
+        self.middleclick = event.button() == QtCore.Qt.MouseButton.MiddleButton
         self.drawPickPos = event.button() == QtCore.Qt.MouseButton.RightButton
         self.offset = event.pos()
         self.opos = self.pos()
+
+        if self.middleclick:
+            self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
+        elif self.leftclick:
+            press_zones = self.getResizeHitZones(local_pos.x(), local_pos.y())
+            if any(press_zones.values()):
+                self.setCursor(self.getResizeCursorShape(press_zones))
+            else:
+                self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
 
     def mouseMoveEvent(self, event):
         ctrl_is_held = bool(QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.KeyboardModifier.ControlModifier)
@@ -627,7 +642,14 @@ class ScreenRuler(QtWidgets.QWidget):
         self.mouse_x = global_x
         self.mouse_y = global_y
 
-        if self.leftclick:
+        if self.middleclick:
+            move_x = global_x - self.offset.x()
+            move_y = global_y - self.offset.y()
+            if ctrl_is_held:
+                self.move(snap(move_x), snap(move_y))
+            else:
+                self.move(move_x, move_y)
+        elif self.leftclick:
             local_x = self.offset.x()
             local_y = self.offset.y()
             gsize = self.GRAB_HANDLE_SIZE
@@ -739,9 +761,12 @@ class ScreenRuler(QtWidgets.QWidget):
 
     def mouseReleaseEvent(self, event):
         self.leftclick = False
+        self.middleclick = False
         self.window_size_x = self.width()
         self.window_size_y = self.height()
         self.drawPickPos = False
+        local_pos = self.mapFromGlobal(QtGui.QCursor.pos())
+        self.updateHoverState(local_pos.x(), local_pos.y())
         self.update()
 
     def setWindowSize(self):

@@ -8,8 +8,8 @@ Small always-on-top screen ruler for measuring on-screen distances.
 ## Features
 
 - Frameless ruler window that stays on top.
-- Drag to move the ruler.
 - Resize from edges and corners.
+- Drag to move the ruler (LMB in the center area, or MMB from anywhere).
 - Hold Ctrl to snap when moving or resizing.
 - Right-click measure mode shows crosshair lines and live X/Y distance from the window origin.
 - Set exact position/size.
