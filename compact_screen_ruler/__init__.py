@@ -5,5 +5,6 @@ logic split into focused modules.
 """
 
 from .app import main
+from .version import __version__
 
-__all__ = ["main"]
+__all__ = ["main", "__version__"]

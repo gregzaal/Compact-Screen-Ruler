@@ -1,2 +1,4 @@
 PyQt6
-cx_Freeze
+Nuitka
+ordered-set
+zstandard

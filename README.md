@@ -2,6 +2,8 @@
 
 Small always-on-top screen ruler for measuring on-screen distances.
 
+Current version: **v1.0.0**
+
 <img width="690" height="70" alt="Screenshot" src="https://github.com/user-attachments/assets/f79fe4bd-ad99-40c6-acbb-13d40efaffb0" />
 
 
@@ -41,7 +43,7 @@ Small always-on-top screen ruler for measuring on-screen distances.
 
 - Python 3.11+
 - PyQt6
-- cx_Freeze (only for building an executable)
+- Nuitka (for building release executable)
 
 Install dependencies:
 
@@ -62,9 +64,10 @@ Or use:
 ## Build
 
 ```bash
-py -3.11 setup.py build
+make.bat
 ```
 
-Or use:
+- This builds a standalone Windows executable with Nuitka and creates a zip you can upload directly to GitHub Releases:
 
-- `make.bat`
+- `build/release/Compact-Screen-Ruler-v1.0.0-win64.zip`
+
