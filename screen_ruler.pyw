@@ -1,70 +1,68 @@
-from PyQt4 import QtGui, QtCore, Qt
-
-from sys import version as sysversion
-
-print(sysversion)
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 
 def snap(num):
     return int(5 * round(float(num) / 5))
 
 
-class ChooseGeometry(QtGui.QDialog):
+class ChooseGeometry(QtWidgets.QDialog):
     def __init__(self, prev_geo):
         super(ChooseGeometry, self).__init__()
 
         self.setWindowTitle("Set Position and Size")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
 
-        self.label_pos = QtGui.QLabel("Position: ", self)
-        self.label_size = QtGui.QLabel("Size: ", self)
-        vbox1 = QtGui.QVBoxLayout()
+        self.label_pos = QtWidgets.QLabel("Position: ", self)
+        self.label_size = QtWidgets.QLabel("Size: ", self)
+        vbox1 = QtWidgets.QVBoxLayout()
         vbox1.addWidget(self.label_pos)
         vbox1.addWidget(self.label_size)
 
-        self.size_x = QtGui.QSpinBox(self)
+        self.size_x = QtWidgets.QSpinBox(self)
         self.size_x.setRange(-99999, 99999)
         self.size_x.setPrefix("Width: ")
         self.size_x.setValue(prev_geo[2])
-        self.pos_x = QtGui.QSpinBox(self)
+        self.pos_x = QtWidgets.QSpinBox(self)
         self.pos_x.setRange(-99999, 99999)
         self.pos_x.setPrefix("X: ")
         self.pos_x.setValue(prev_geo[0])
-        vbox2 = QtGui.QVBoxLayout()
+        vbox2 = QtWidgets.QVBoxLayout()
         vbox2.addWidget(self.size_x)
         vbox2.addWidget(self.pos_x)
 
-        self.size_y = QtGui.QSpinBox(self)
+        self.size_y = QtWidgets.QSpinBox(self)
         self.size_y.setRange(-99999, 99999)
         self.size_y.setPrefix("Height: ")
         self.size_y.setValue(prev_geo[3])
-        self.pos_y = QtGui.QSpinBox(self)
+        self.pos_y = QtWidgets.QSpinBox(self)
         self.pos_y.setRange(-99999, 99999)
         self.pos_y.setPrefix("Y: ")
         self.pos_y.setValue(prev_geo[1])
-        vbox3 = QtGui.QVBoxLayout()
+        vbox3 = QtWidgets.QVBoxLayout()
         vbox3.addWidget(self.size_y)
         vbox3.addWidget(self.pos_y)
 
-        main_hbox = QtGui.QHBoxLayout()
+        main_hbox = QtWidgets.QHBoxLayout()
         main_hbox.addLayout(vbox1)
         main_hbox.addLayout(vbox2)
         main_hbox.addLayout(vbox3)
 
-        self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel, QtCore.Qt.Horizontal, self
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel,
+            QtCore.Qt.Orientation.Horizontal,
+            self,
         )
 
-        main_vbox = QtGui.QVBoxLayout()
+        main_vbox = QtWidgets.QVBoxLayout()
         main_vbox.addLayout(main_hbox)
         main_vbox.addWidget(self.buttons)
 
         self.setLayout(main_vbox)
 
-        QtCore.QObject.connect(self.buttons, QtCore.SIGNAL("accepted()"), self.accept)
-        QtCore.QObject.connect(self.buttons, QtCore.SIGNAL("rejected()"), self.reject)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
 
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
 
         # Box layouts have their own tab order - tell it manually where to go
         self.setTabOrder(self.pos_x, self.pos_y)
@@ -79,7 +77,7 @@ class ChooseGeometry(QtGui.QDialog):
         return [self.pos_x.value(), self.pos_y.value(), self.size_x.value(), self.size_y.value()]
 
 
-class HelpDialog(QtGui.QDialog):
+class HelpDialog(QtWidgets.QDialog):
     def __init__(self):
         super(HelpDialog, self).__init__()
 
@@ -103,14 +101,14 @@ class HelpDialog(QtGui.QDialog):
             "Ctrl + S\t\tTake a screenshot of what's behind the ruler\n"
             "F1 / H\t\tDisplay this Help dialog"
         )
-        self.main_label = QtGui.QLabel(text, self)
+        self.main_label = QtWidgets.QLabel(text, self)
         self.main_label.setGeometry(10, 0, 380, 215)
         self.main_label.setWordWrap(True)
 
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
 
 
-class ScreenRuler(QtGui.QWidget):
+class ScreenRuler(QtWidgets.QWidget):
 
     def paintEvent(self, e):
         col1 = 255 if not self.invert_colors else 0
@@ -121,29 +119,29 @@ class ScreenRuler(QtGui.QWidget):
         painter = QtGui.QPainter()
         painter.begin(self)
 
-        pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
         painter.setPen(pen)
 
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         painter.setBrush(QtGui.QColor(col2, col2, col2, (0 if self.is_transparent else 180)))
-        painter.drawRoundedRect(Qt.QRect(0, 0, self.width(), self.height()), 4, 4)
+        painter.drawRoundedRect(QtCore.QRect(0, 0, self.width(), self.height()), 4, 4)
 
-        pen = QtGui.QPen(QtGui.QColor(col1, col1, col1, 0), 1, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(col1, col1, col1, 0), 1, QtCore.Qt.PenStyle.SolidLine)
         painter.setPen(pen)
 
         # Grab bars
         painter.setBrush(QtGui.QColor(col1, col1, col1, 25))
         if self.is_transparent:
-            painter.drawRect(Qt.QRect(0, 0, max(self.width(), 0), max(self.height(), 0)))
+            painter.drawRect(QtCore.QRect(0, 0, max(self.width(), 0), max(self.height(), 0)))
         else:
-            painter.drawRect(Qt.QRect(21, 21, max(self.width() - 21 * 2, 0), max(self.height() - 21 * 2, 0)))
+            painter.drawRect(QtCore.QRect(21, 21, max(self.width() - 21 * 2, 0), max(self.height() - 21 * 2, 0)))
 
-        pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
         painter.setPen(pen)
 
         if not self.is_transparent:
             # Small ticks
-            pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 128), 1, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 128), 1, QtCore.Qt.PenStyle.SolidLine)
             painter.setPen(pen)
             if self.width() >= 88:
                 for x in range(1, int(self.width() + 1 / space)):
@@ -170,7 +168,7 @@ class ScreenRuler(QtGui.QWidget):
                                 painter.drawLine(self.width(), yloc, self.width() - (((y - 1) % 2) + 1) * 5, yloc)
 
             # Big ticks
-            pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(QtGui.QColor(col3, col3, col3, 200), 1, QtCore.Qt.PenStyle.SolidLine)
             painter.setPen(pen)
             if self.width() >= 88:
                 for x in range(1, int(self.width() + 1 / space)):
@@ -184,17 +182,27 @@ class ScreenRuler(QtGui.QWidget):
                         if xloc < self.width() - 37 or self.height() > 80:
                             if self.height() > 80:
                                 if xloc < self.width() - 37:
-                                    painter.drawText(Qt.QRect(xloc - 25, 19, 50, 15), QtCore.Qt.AlignCenter, str(xloc))
                                     painter.drawText(
-                                        Qt.QRect(xloc - 25, self.height() - 35, 50, 15),
-                                        QtCore.Qt.AlignCenter,
+                                        QtCore.QRect(xloc - 25, 19, 50, 15),
+                                        QtCore.Qt.AlignmentFlag.AlignCenter,
+                                        str(xloc),
+                                    )
+                                    painter.drawText(
+                                        QtCore.QRect(xloc - 25, self.height() - 35, 50, 15),
+                                        QtCore.Qt.AlignmentFlag.AlignCenter,
                                         str(xloc),
                                     )
                             elif self.height() < 54:
-                                painter.drawText(Qt.QRect(xloc - 25, 19, 50, 15), QtCore.Qt.AlignCenter, str(xloc))
+                                painter.drawText(
+                                    QtCore.QRect(xloc - 25, 19, 50, 15),
+                                    QtCore.Qt.AlignmentFlag.AlignCenter,
+                                    str(xloc),
+                                )
                             else:
                                 painter.drawText(
-                                    Qt.QRect(xloc - 25, 0, 50, self.height()), QtCore.Qt.AlignCenter, str(xloc)
+                                    QtCore.QRect(xloc - 25, 0, 50, self.height()),
+                                    QtCore.Qt.AlignmentFlag.AlignCenter,
+                                    str(xloc),
                                 )
             if self.height() > 80:
                 for y in range(1, int(self.height() / space / 10) + 1):
@@ -207,13 +215,21 @@ class ScreenRuler(QtGui.QWidget):
                         # Numbers
                         if yloc < self.height() - 35:
                             if self.width() >= 88:
-                                painter.drawText(Qt.QRect(23, yloc - 7, 50, 20), QtCore.Qt.AlignLeft, str(yloc))
                                 painter.drawText(
-                                    Qt.QRect(self.width() - 63, yloc - 7, 40, 50), QtCore.Qt.AlignRight, str(yloc)
+                                    QtCore.QRect(23, yloc - 7, 50, 20),
+                                    QtCore.Qt.AlignmentFlag.AlignLeft,
+                                    str(yloc),
+                                )
+                                painter.drawText(
+                                    QtCore.QRect(self.width() - 63, yloc - 7, 40, 50),
+                                    QtCore.Qt.AlignmentFlag.AlignRight,
+                                    str(yloc),
                                 )
                             elif self.width() > 62:
                                 painter.drawText(
-                                    Qt.QRect(0, yloc - 25, self.width(), 50), QtCore.Qt.AlignCenter, str(yloc)
+                                    QtCore.QRect(0, yloc - 25, self.width(), 50),
+                                    QtCore.Qt.AlignmentFlag.AlignCenter,
+                                    str(yloc),
                                 )
 
             # Size display
@@ -234,16 +250,20 @@ class ScreenRuler(QtGui.QWidget):
 
             if self.height() > 80 and self.width() >= 88:
                 painter.drawText(
-                    Qt.QRect(0, 0, self.width(), self.height()),
-                    QtCore.Qt.AlignCenter,
+                    QtCore.QRect(0, 0, self.width(), self.height()),
+                    QtCore.Qt.AlignmentFlag.AlignCenter,
                     str(size_x) + " x " + str(size_y),
                 )
             elif self.height() > 80 and self.width() < 88:
-                painter.drawText(Qt.QRect(0, self.height() - 37, self.width(), 20), QtCore.Qt.AlignCenter, str(size_y))
+                painter.drawText(
+                    QtCore.QRect(0, self.height() - 37, self.width(), 20),
+                    QtCore.Qt.AlignmentFlag.AlignCenter,
+                    str(size_y),
+                )
             else:
                 painter.drawText(
-                    Qt.QRect(0, max(self.height() / 2 - 6.5, 20), self.width() - 3, self.height()),
-                    QtCore.Qt.AlignRight,
+                    QtCore.QRect(0, int(max(self.height() / 2 - 6.5, 20)), self.width() - 3, self.height()),
+                    QtCore.Qt.AlignmentFlag.AlignRight,
                     str(size_x),
                 )
 
@@ -262,7 +282,7 @@ class ScreenRuler(QtGui.QWidget):
         self.invert_colors = False
 
         # hiding title bar, always on top
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint | QtCore.Qt.WindowType.WindowStaysOnTopHint)
 
         self.setWindowTitle("Compact Screen Ruler")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
@@ -271,38 +291,47 @@ class ScreenRuler(QtGui.QWidget):
         self.resize(self.window_size_x, self.window_size_y)
         self.center()
 
-        self.setAttribute(Qt.Qt.WA_TranslucentBackground)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
 
         # Hotkeys
-        QtGui.QShortcut(QtGui.QKeySequence("Q"), self, self.close)
-        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self, self.close)
-        QtGui.QShortcut(QtGui.QKeySequence("S"), self, self.setWindowSize)
-        QtGui.QShortcut(QtGui.QKeySequence("F"), self, self.flipOrientation)
-        QtGui.QShortcut(QtGui.QKeySequence("R"), self, self.resetWindow)
-        QtGui.QShortcut(QtGui.QKeySequence("T"), self, self.makeTransparent)
-        QtGui.QShortcut(QtGui.QKeySequence("I"), self, self.doInvertColors)
-        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+S"), self, self.takeScreenshot)
-        QtGui.QShortcut(QtGui.QKeySequence("F1"), self, self.displayHelp)
-        QtGui.QShortcut(QtGui.QKeySequence("H"), self, self.displayHelp)
+        self.shortcuts = []
+        shortcut_map = {
+            "Q": self.close,
+            "Ctrl+Q": self.close,
+            "S": self.setWindowSize,
+            "F": self.flipOrientation,
+            "R": self.resetWindow,
+            "T": self.makeTransparent,
+            "I": self.doInvertColors,
+            "Ctrl+S": self.takeScreenshot,
+            "F1": self.displayHelp,
+            "H": self.displayHelp,
+        }
+        for keys, callback in shortcut_map.items():
+            shortcut = QtGui.QShortcut(QtGui.QKeySequence(keys), self)
+            shortcut.activated.connect(callback)
+            self.shortcuts.append(shortcut)
 
     def center(self):
         qr = self.frameGeometry()
-        cp = QtGui.QDesktopWidget().availableGeometry().center()
+        screen = QtWidgets.QApplication.primaryScreen()
+        cp = screen.availableGeometry().center() if screen else QtCore.QPoint(0, 0)
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
     def mousePressEvent(self, event):
-        self.leftclick = event.button() == 1
-        self.drawPickPos = event.button() == 2
+        self.leftclick = event.button() == QtCore.Qt.MouseButton.LeftButton
+        self.drawPickPos = event.button() == QtCore.Qt.MouseButton.RightButton
         self.offset = event.pos()
         self.opos = self.pos()
 
     def mouseMoveEvent(self, event):
-        ctrl_is_held = QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ControlModifier
+        ctrl_is_held = bool(QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.KeyboardModifier.ControlModifier)
         window_x = self.pos().x()
         window_y = self.pos().y()
-        global_x = event.globalX()
-        global_y = event.globalY()
+        global_pos = event.globalPosition()
+        global_x = int(global_pos.x())
+        global_y = int(global_pos.y())
         local_x = self.offset.x()
         local_y = self.offset.y()
 
@@ -382,7 +411,7 @@ class ScreenRuler(QtGui.QWidget):
         self.dialog.show()
 
         values = []
-        if self.dialog.exec_():
+        if self.dialog.exec():
             values = self.dialog.getValues()
 
         if values:
@@ -420,15 +449,18 @@ class ScreenRuler(QtGui.QWidget):
         window_x = self.pos().x()
         window_y = self.pos().y()
 
-        raw = QtGui.QPixmap.grabWindow(QtGui.QApplication.desktop().winId())
+        screen = QtGui.QGuiApplication.primaryScreen()
+        if not screen:
+            self.show()
+            return
+
+        raw = screen.grabWindow(0)
         rect = QtCore.QRect(window_x, window_y, self.window_size_x, self.window_size_y)
         new = raw.copy(rect)
 
-        fname = QtGui.QFileDialog.getSaveFileName(self, "Save screenshot", "Z:/", "PNG File (*.png)")
-        try:
-            fname += ".png" if not fname.endsWith(".png") else ""  # capital W for python 2.x
-        except AttributeError:
-            fname += ".png" if not fname.endswith(".png") else ""  # lower case W for python 3.x
+        fname, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save screenshot", "", "PNG File (*.png)")
+        if fname and not fname.lower().endswith(".png"):
+            fname += ".png"
 
         if fname:
             new.save(fname, "png")
@@ -441,11 +473,11 @@ class ScreenRuler(QtGui.QWidget):
 
 
 def main():
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     app.setWindowIcon(QtGui.QIcon("icon.ico"))
     exm = ScreenRuler()
     exm.show()
-    app.exec_()
+    app.exec()
 
 
 if __name__ == "__main__":
