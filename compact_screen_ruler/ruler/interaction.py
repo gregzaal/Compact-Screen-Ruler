@@ -8,6 +8,16 @@ from ..utils import snap
 class RulerInteractionMixin:
     """Provide mouse interaction behaviors (move, resize, click actions)."""
 
+    def getSnapIncrement(self, axis):
+        # Use the same logic as tick config for medium tick spacing
+        if hasattr(self, "getTickConfig"):
+            return self.getTickConfig(axis)["medium_step_px"]
+        # Fallback to default
+        return 10
+
+    def snapFromOrigin(self, value, origin, axis):
+        return origin + snap(value - origin, self.getSnapIncrement(axis))
+
     def updateHoverState(self, local_x, local_y):
         hover_zones = self.getResizeHitZones(local_x, local_y)
         if hover_zones != self.hover_zones:
@@ -87,7 +97,9 @@ class RulerInteractionMixin:
             if screen_edge_snap_enabled:
                 move_x, move_y = self.snapPositionToScreenEdges(move_x, move_y, self.window_size_x, self.window_size_y)
             if ctrl_is_held:
-                self.move(snap(move_x), snap(move_y))
+                self.move(
+                    self.snapFromOrigin(move_x, self.opos.x(), "x"), self.snapFromOrigin(move_y, self.opos.y(), "y")
+                )
             else:
                 self.move(move_x, move_y)
             self.update()
@@ -207,12 +219,36 @@ class RulerInteractionMixin:
 
             if resize_x is not None and resize_y is not None:
                 if ctrl_is_held:
-                    self.resize(snap(resize_x), snap(resize_y))
-                else:
-                    self.resize(resize_x, resize_y)
+                    # Only snap the axis being resized, using unit-aware increment
+                    if (on_left or on_right) and not (on_top or on_bottom):
+                        resize_x = snap(resize_x, self.getSnapIncrement("x"))
+                    elif (on_top or on_bottom) and not (on_left or on_right):
+                        resize_y = snap(resize_y, self.getSnapIncrement("y"))
+                    else:
+                        resize_x = snap(resize_x, self.getSnapIncrement("x"))
+                        resize_y = snap(resize_y, self.getSnapIncrement("y"))
+
+                    orig_left = self.opos.x()
+                    orig_top = self.opos.y()
+                    orig_right = orig_left + self.window_size_x
+                    orig_bottom = orig_top + self.window_size_y
+
+                    if on_left and not on_right:
+                        move_x = orig_right - resize_x
+                    elif on_right and not on_left:
+                        move_x = orig_left
+
+                    if on_top and not on_bottom:
+                        move_y = orig_bottom - resize_y
+                    elif on_bottom and not on_top:
+                        move_y = orig_top
+
+                self.resize(resize_x, resize_y)
             if move_x is not None and move_y is not None:
-                if ctrl_is_held:
-                    self.move(snap(move_x), snap(move_y))
+                if ctrl_is_held and resize_x is None and resize_y is None:
+                    self.move(
+                        self.snapFromOrigin(move_x, self.opos.x(), "x"), self.snapFromOrigin(move_y, self.opos.y(), "y")
+                    )
                 else:
                     self.move(move_x, move_y)
             self.update()
