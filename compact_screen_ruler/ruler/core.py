@@ -1,5 +1,7 @@
 """Core widget lifecycle and command handlers for the ruler."""
 
+from datetime import datetime
+
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs import ChooseGeometry, HelpDialog
@@ -204,7 +206,13 @@ class RulerCore(QtWidgets.QWidget):
         local_y = window_y - screen_geo.y()
         screenshot = screen.grabWindow(0, local_x, local_y, window_w, window_h)
 
-        fname, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save screenshot", "", "PNG File (*.png)")
+        default_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        fname, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save screenshot",
+            default_name,
+            "PNG File (*.png)",
+        )
         if fname and not fname.lower().endswith(".png"):
             fname += ".png"
 
