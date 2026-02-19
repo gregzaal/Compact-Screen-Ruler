@@ -1,13 +1,11 @@
 from cx_Freeze import setup, Executable
 import sys
 
-# from PyQt6 import QtGui, QtCore, QtWidgets
-
 build_exe_options = {"includes": ["sip", "re", "atexit", "PyQt6.QtGui", "PyQt6.QtCore", "PyQt6.QtWidgets"]}
 
-b = None
+base = None
 if sys.platform == "win32":
-    b = "Win32GUI"
+    base = "Win32GUI"
 
 setup(
     name="Screen Ruler",
@@ -17,8 +15,8 @@ setup(
     executables=[
         Executable(
             "screen_ruler.pyw",
-            base=b,
-            targetName="screenshot_ruler.exe",
+            base=base,
+            target_name="screen_ruler.exe",
             icon="icon.ico",
             compress=True,
         )

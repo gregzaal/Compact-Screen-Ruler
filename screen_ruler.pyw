@@ -1,9 +1,14 @@
-from PyQt6 import QtCore, QtGui, QtWidgets
 import math
+import sys
+
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 
-def snap(num):
-    return int(5 * round(float(num) / 5))
+SNAP_INCREMENT = 5
+
+
+def snap(num, increment=SNAP_INCREMENT):
+    return int(increment * round(float(num) / increment))
 
 
 def simplify_ratio(width, height):
@@ -15,7 +20,7 @@ def simplify_ratio(width, height):
 
 class ChooseGeometry(QtWidgets.QDialog):
     def __init__(self, prev_geo):
-        super(ChooseGeometry, self).__init__()
+        super().__init__()
 
         self.setWindowTitle("Set Position and Size")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
@@ -81,13 +86,16 @@ class ChooseGeometry(QtWidgets.QDialog):
         self.size_x.setFocus()
         self.size_x.selectAll()
 
-    def getValues(self):
+    def get_values(self):
         return [self.pos_x.value(), self.pos_y.value(), self.size_x.value(), self.size_y.value()]
+
+    def getValues(self):
+        return self.get_values()
 
 
 class HelpDialog(QtWidgets.QDialog):
     def __init__(self):
-        super(HelpDialog, self).__init__()
+        super().__init__()
 
         self.setWindowTitle("Help and Info")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
@@ -124,8 +132,10 @@ class HelpDialog(QtWidgets.QDialog):
 
 
 class ScreenRuler(QtWidgets.QWidget):
+    MIN_WINDOW_SIZE = 10
+    GRAB_HANDLE_SIZE = 21
 
-    def paintEvent(self, e):
+    def paintEvent(self, _event):
         col1 = 255 if not self.invert_colors else 0
         col2 = 100 if not self.invert_colors else 155
         col3 = 0 if not self.invert_colors else 255
@@ -267,7 +277,7 @@ class ScreenRuler(QtWidgets.QWidget):
                 painter.drawText(
                     QtCore.QRect(0, 0, self.width(), self.height()),
                     QtCore.Qt.AlignmentFlag.AlignCenter,
-                    str(size_x) + " x " + str(size_y),
+                    f"{size_x} x {size_y}",
                 )
                 self.drawStatusMessages(painter, col3)
             elif self.height() > 80 and self.width() < 88:
@@ -332,12 +342,12 @@ class ScreenRuler(QtWidgets.QWidget):
         self.aspect_lock_ratio = self.aspect_lock_target_width / self.aspect_lock_target_height
 
     def __init__(self):
-        super(ScreenRuler, self).__init__()
+        super().__init__()
 
         self.leftclick = False
         self.drawPickPos = False
 
-        self.window_size_x = 690  # adaptivesamples post width
+        self.window_size_x = 690
         self.window_size_y = 70
 
         self.is_transparent = False
@@ -346,6 +356,7 @@ class ScreenRuler(QtWidgets.QWidget):
         self.aspect_lock_target_width = self.window_size_x
         self.aspect_lock_target_height = self.window_size_y
         self.aspect_lock_ratio = self.window_size_x / self.window_size_y if self.window_size_y else 1.0
+        self.help_dialog = None
 
         # hiding title bar, always on top
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint | QtCore.Qt.WindowType.WindowStaysOnTopHint)
@@ -406,47 +417,46 @@ class ScreenRuler(QtWidgets.QWidget):
         self.mouse_y = global_y
 
         if self.leftclick:
+            gsize = self.GRAB_HANDLE_SIZE
 
-            gsize = 21
+            resize_x = None
+            resize_y = None
 
-            resize_x = -99999999  # impossible value
-            resize_y = -99999999
-
-            move_x = -99999999
-            move_y = -99999999
+            move_x = None
+            move_y = None
 
             if local_x > self.window_size_x - gsize and local_y > self.window_size_y - gsize:  # bottom right
-                resize_x = max(10, global_x - window_x + (self.window_size_x - local_x))
-                resize_y = max(10, global_y - window_y + (self.window_size_y - local_y))
+                resize_x = max(self.MIN_WINDOW_SIZE, global_x - window_x + (self.window_size_x - local_x))
+                resize_y = max(self.MIN_WINDOW_SIZE, global_y - window_y + (self.window_size_y - local_y))
             elif local_x < gsize and local_y > self.window_size_y - gsize:  # bottom left
-                resize_x = max(10, self.window_size_x - global_x + self.opos.x() + local_x)
-                resize_y = max(10, global_y - window_y + (self.window_size_y - local_y))
+                resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x - global_x + self.opos.x() + local_x)
+                resize_y = max(self.MIN_WINDOW_SIZE, global_y - window_y + (self.window_size_y - local_y))
                 move_x = global_x - local_x
                 move_y = window_y
             elif local_x > self.window_size_x - gsize and local_y < gsize:  # top right
-                resize_x = max(10, global_x - window_x + (self.window_size_x - local_x))
-                resize_y = max(10, self.window_size_y - global_y + self.opos.y() + local_y)
+                resize_x = max(self.MIN_WINDOW_SIZE, global_x - window_x + (self.window_size_x - local_x))
+                resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y - global_y + self.opos.y() + local_y)
                 move_x = window_x
                 move_y = global_y - local_y
             elif local_x < gsize and local_y < gsize:  # top left
-                resize_x = max(10, self.window_size_x - global_x + self.opos.x() + local_x)
-                resize_y = max(10, self.window_size_y - global_y + self.opos.y() + local_y)
+                resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x - global_x + self.opos.x() + local_x)
+                resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y - global_y + self.opos.y() + local_y)
                 move_x = global_x - local_x
                 move_y = global_y - local_y
             elif local_y > self.window_size_y - gsize:  # bottom edge
-                resize_x = max(10, self.window_size_x)
-                resize_y = max(10, global_y - window_y + (self.window_size_y - local_y))
+                resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x)
+                resize_y = max(self.MIN_WINDOW_SIZE, global_y - window_y + (self.window_size_y - local_y))
             elif local_y < gsize:  # top edge
-                resize_x = max(10, self.window_size_x)
-                resize_y = max(10, self.window_size_y - global_y + self.opos.y() + local_y)
+                resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x)
+                resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y - global_y + self.opos.y() + local_y)
                 move_x = window_x
                 move_y = global_y - local_y
             elif local_x > self.window_size_x - gsize:  # right edge
-                resize_x = max(10, global_x - window_x + (self.window_size_x - local_x))
-                resize_y = max(10, self.window_size_y)
+                resize_x = max(self.MIN_WINDOW_SIZE, global_x - window_x + (self.window_size_x - local_x))
+                resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y)
             elif local_x < gsize:  # left edge
-                resize_x = max(10, self.window_size_x - global_x + self.opos.x() + local_x)
-                resize_y = max(10, self.window_size_y)
+                resize_x = max(self.MIN_WINDOW_SIZE, self.window_size_x - global_x + self.opos.x() + local_x)
+                resize_y = max(self.MIN_WINDOW_SIZE, self.window_size_y)
                 move_x = global_x - local_x
                 move_y = window_y
             else:
@@ -458,7 +468,7 @@ class ScreenRuler(QtWidgets.QWidget):
             on_top = local_y < gsize
             on_bottom = local_y > self.window_size_y - gsize
 
-            if self.aspect_lock_enabled and resize_x != -99999999 and resize_y != -99999999:
+            if self.aspect_lock_enabled and resize_x is not None and resize_y is not None:
                 ratio = self.aspect_lock_ratio if self.aspect_lock_ratio > 0 else 1.0
                 base_resize_x = resize_x
                 base_resize_y = resize_y
@@ -466,13 +476,13 @@ class ScreenRuler(QtWidgets.QWidget):
                 delta_y = abs(base_resize_y - self.window_size_y)
 
                 if delta_x >= delta_y:
-                    resize_x = max(10, base_resize_x)
-                    resize_y = max(10, int(round(resize_x / ratio)))
-                    resize_x = max(10, int(round(resize_y * ratio)))
+                    resize_x = max(self.MIN_WINDOW_SIZE, base_resize_x)
+                    resize_y = max(self.MIN_WINDOW_SIZE, int(round(resize_x / ratio)))
+                    resize_x = max(self.MIN_WINDOW_SIZE, int(round(resize_y * ratio)))
                 else:
-                    resize_y = max(10, base_resize_y)
-                    resize_x = max(10, int(round(resize_y * ratio)))
-                    resize_y = max(10, int(round(resize_x / ratio)))
+                    resize_y = max(self.MIN_WINDOW_SIZE, base_resize_y)
+                    resize_x = max(self.MIN_WINDOW_SIZE, int(round(resize_y * ratio)))
+                    resize_y = max(self.MIN_WINDOW_SIZE, int(round(resize_x / ratio)))
 
                 orig_left = self.opos.x()
                 orig_top = self.opos.y()
@@ -493,12 +503,12 @@ class ScreenRuler(QtWidgets.QWidget):
                 elif not on_top and not on_bottom:
                     move_y = orig_top + int(round((self.window_size_y - resize_y) / 2))
 
-            if resize_x != -99999999 and resize_y != -99999999:
+            if resize_x is not None and resize_y is not None:
                 if ctrl_is_held:
                     self.resize(snap(resize_x), snap(resize_y))
                 else:
                     self.resize(resize_x, resize_y)
-            if move_x != -99999999 and move_y != -99999999:
+            if move_x is not None and move_y is not None:
                 if ctrl_is_held:
                     self.move(snap(move_x), snap(move_y))
                 else:
@@ -514,12 +524,11 @@ class ScreenRuler(QtWidgets.QWidget):
         self.update()
 
     def setWindowSize(self):
-        self.dialog = ChooseGeometry([self.pos().x(), self.pos().y(), self.window_size_x, self.window_size_y])
-        self.dialog.show()
+        dialog = ChooseGeometry([self.pos().x(), self.pos().y(), self.window_size_x, self.window_size_y])
 
         values = []
-        if self.dialog.exec():
-            values = self.dialog.getValues()
+        if dialog.exec():
+            values = dialog.get_values()
 
         if values:
             pos_x, pos_y, size_x, size_y = values
@@ -531,12 +540,12 @@ class ScreenRuler(QtWidgets.QWidget):
                 self.setAspectLockTarget(size_x, size_y)
 
     def flipOrientation(self):
-        x = self.width()
-        y = self.height()
+        width = self.width()
+        height = self.height()
 
-        self.resize(y, x)
-        self.window_size_x = y
-        self.window_size_y = x
+        self.resize(height, width)
+        self.window_size_x = height
+        self.window_size_y = width
 
     def resetWindow(self):
         self.window_size_x = 500
@@ -578,29 +587,33 @@ class ScreenRuler(QtWidgets.QWidget):
         screen_geo = screen.geometry()
         local_x = window_x - screen_geo.x()
         local_y = window_y - screen_geo.y()
-        new = screen.grabWindow(0, local_x, local_y, window_w, window_h)
+        screenshot = screen.grabWindow(0, local_x, local_y, window_w, window_h)
 
         fname, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save screenshot", "", "PNG File (*.png)")
         if fname and not fname.lower().endswith(".png"):
             fname += ".png"
 
         if fname:
-            new.save(fname, "png")
+            screenshot.save(fname, "png")
 
         self.show()
 
     def displayHelp(self):
-        self.dialog = HelpDialog()
-        self.dialog.show()
+        if self.help_dialog is None:
+            self.help_dialog = HelpDialog()
+
+        self.help_dialog.show()
+        self.help_dialog.raise_()
+        self.help_dialog.activateWindow()
 
 
 def main():
-    app = QtWidgets.QApplication([])
+    app = QtWidgets.QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon("icon.ico"))
     exm = ScreenRuler()
     exm.show()
-    app.exec()
+    return app.exec()
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
