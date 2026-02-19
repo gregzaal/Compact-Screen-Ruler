@@ -39,6 +39,7 @@ Current version: **v1.0.0**
 - `R`: Reset to defaults
 - `L`: Toggle aspect ratio lock
 - `U`: Toggle measurement units (px, cm, in)
+- `G`: Toggle full-window grid from tick marks
 - `C`: Toggle clickthrough mode
 - `Ctrl+S`: Save screenshot of area behind ruler
 - `F1` or `H`: Open help

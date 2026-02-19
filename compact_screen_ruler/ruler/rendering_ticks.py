@@ -15,8 +15,19 @@ class RulerRenderingTicksMixin:
         return right_label_limit
 
     def drawSubticks(self, painter, color_value):
-        pen = QtGui.QPen(QtGui.QColor(color_value, color_value, color_value, 128), 1, QtCore.Qt.PenStyle.SolidLine)
-        painter.setPen(pen)
+        normal_subtick_alpha = 128
+        smallest_grid_alpha = int(round(normal_subtick_alpha * 0.5))
+        normal_pen = QtGui.QPen(
+            QtGui.QColor(color_value, color_value, color_value, normal_subtick_alpha),
+            1,
+            QtCore.Qt.PenStyle.SolidLine,
+        )
+        smallest_grid_pen = QtGui.QPen(
+            QtGui.QColor(color_value, color_value, color_value, smallest_grid_alpha),
+            1,
+            QtCore.Qt.PenStyle.SolidLine,
+        )
+        painter.setPen(normal_pen)
 
         x_tick_config = self.getTickConfig("x")
         y_tick_config = self.getTickConfig("y")
@@ -32,22 +43,36 @@ class RulerRenderingTicksMixin:
             x_tolerance = max(1.0, x_small_step * 0.2)
             while x_small_pos < self.width() - 1:
                 if not self.isNearStep(x_small_pos, x_major_step, x_tolerance):
+                    is_smallest_tick = False
                     if x_tick_config["distinct_subticks"] and self.isNearStep(x_small_pos, x_medium_step, x_tolerance):
                         tick_size = 10
                     elif x_tick_config["distinct_subticks"]:
                         tick_size = 5
+                        is_smallest_tick = True
                     else:
                         small_index = int(round(x_small_pos / x_small_step))
                         tick_size = (((small_index - 1) % 2) + 1) * 5
+                        is_smallest_tick = tick_size == 5
+
+                    if self.grid_enabled and is_smallest_tick:
+                        painter.setPen(smallest_grid_pen)
+                    else:
+                        painter.setPen(normal_pen)
 
                     if x_tick_config["distinct_subticks"]:
                         xloc = float(x_small_pos)
-                        painter.drawLine(QtCore.QLineF(xloc, 0.0, xloc, float(tick_size)))
+                        if self.grid_enabled:
+                            painter.drawLine(QtCore.QLineF(xloc, 0.0, xloc, float(self.height())))
+                        else:
+                            painter.drawLine(QtCore.QLineF(xloc, 0.0, xloc, float(tick_size)))
                     else:
                         xloc = int(round(x_small_pos))
-                        painter.drawLine(xloc, 0, xloc, tick_size)
+                        if self.grid_enabled:
+                            painter.drawLine(xloc, 0, xloc, self.height())
+                        else:
+                            painter.drawLine(xloc, 0, xloc, tick_size)
 
-                    if self.height() > 43:
+                    if self.height() > 43 and not self.grid_enabled:
                         if x_tick_config["distinct_subticks"]:
                             painter.drawLine(
                                 QtCore.QLineF(
@@ -66,22 +91,36 @@ class RulerRenderingTicksMixin:
             y_tolerance = max(1.0, y_small_step * 0.2)
             while y_small_pos < self.height() - 1:
                 if not self.isNearStep(y_small_pos, y_major_step, y_tolerance):
+                    is_smallest_tick = False
                     if y_tick_config["distinct_subticks"] and self.isNearStep(y_small_pos, y_medium_step, y_tolerance):
                         tick_size = 10
                     elif y_tick_config["distinct_subticks"]:
                         tick_size = 5
+                        is_smallest_tick = True
                     else:
                         small_index = int(round(y_small_pos / y_small_step))
                         tick_size = (((small_index - 1) % 2) + 1) * 5
+                        is_smallest_tick = tick_size == 5
+
+                    if self.grid_enabled and is_smallest_tick:
+                        painter.setPen(smallest_grid_pen)
+                    else:
+                        painter.setPen(normal_pen)
 
                     if y_tick_config["distinct_subticks"]:
                         yloc = float(y_small_pos)
-                        painter.drawLine(QtCore.QLineF(0.0, yloc, float(tick_size), yloc))
+                        if self.grid_enabled:
+                            painter.drawLine(QtCore.QLineF(0.0, yloc, float(self.width()), yloc))
+                        else:
+                            painter.drawLine(QtCore.QLineF(0.0, yloc, float(tick_size), yloc))
                     else:
                         yloc = int(round(y_small_pos))
-                        painter.drawLine(0, yloc, tick_size, yloc)
+                        if self.grid_enabled:
+                            painter.drawLine(0, yloc, self.width(), yloc)
+                        else:
+                            painter.drawLine(0, yloc, tick_size, yloc)
 
-                    if self.width() > 43:
+                    if self.width() > 43 and not self.grid_enabled:
                         if y_tick_config["distinct_subticks"]:
                             painter.drawLine(
                                 QtCore.QLineF(
@@ -112,8 +151,11 @@ class RulerRenderingTicksMixin:
             while x_major_pos < self.width() - 1:
                 xloc = int(round(x_major_pos))
                 label = self.formatTickLabel(x_major_index * x_major_unit)
-                painter.drawLine(xloc, 0, xloc, 20)
-                if self.height() > 52:
+                if self.grid_enabled:
+                    painter.drawLine(xloc, 0, xloc, self.height())
+                else:
+                    painter.drawLine(xloc, 0, xloc, 20)
+                if self.height() > 52 and not self.grid_enabled:
                     painter.drawLine(xloc, self.height(), xloc, self.height() - 20)
 
                 if xloc < right_label_limit or self.height() > 80:
@@ -151,8 +193,11 @@ class RulerRenderingTicksMixin:
             while y_major_pos < self.height() - 9:
                 yloc = int(round(y_major_pos))
                 label = self.formatTickLabel(y_major_index * y_major_unit)
-                painter.drawLine(0, yloc, 20, yloc)
-                if self.width() > 52:
+                if self.grid_enabled:
+                    painter.drawLine(0, yloc, self.width(), yloc)
+                else:
+                    painter.drawLine(0, yloc, 20, yloc)
+                if self.width() > 52 and not self.grid_enabled:
                     painter.drawLine(self.width(), yloc, self.width() - 20, yloc)
 
                 if yloc < self.height() - 35:

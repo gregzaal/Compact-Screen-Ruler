@@ -35,6 +35,7 @@ class RulerCore(QtWidgets.QWidget):
         self.aspect_lock_target_height = self.window_size_y
         self.aspect_lock_ratio = self.window_size_x / self.window_size_y if self.window_size_y else 1.0
         self.measurement_unit = "px"
+        self.grid_enabled = False
         self.help_dialog = None
         self.clickthrough_enabled = False
         self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
@@ -71,6 +72,7 @@ class RulerCore(QtWidgets.QWidget):
             "C": self.toggleClickthroughMode,
             "L": self.toggleAspectRatioLock,
             "U": self.toggleMeasurementUnit,
+            "G": self.toggleGridMode,
             "Ctrl+S": self.takeScreenshot,
             "F1": self.displayHelp,
             "H": self.displayHelp,
@@ -215,6 +217,10 @@ class RulerCore(QtWidgets.QWidget):
         units = ("px", "cm", "in")
         current_index = units.index(self.measurement_unit) if self.measurement_unit in units else 0
         self.measurement_unit = units[(current_index + 1) % len(units)]
+        self.update()
+
+    def toggleGridMode(self):
+        self.grid_enabled = not self.grid_enabled
         self.update()
 
     def copyDimensionsToClipboard(self):
