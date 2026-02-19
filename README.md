@@ -10,19 +10,12 @@ Small always-on-top screen ruler for measuring on-screen distances.
 - Frameless ruler window that stays on top.
 - Drag to move the ruler.
 - Resize from edges and corners.
-- Optional snapping to 5-pixel increments while holding Ctrl (move + resize).
+- Hold Ctrl to snap when moving or resizing.
 - Right-click measure mode shows crosshair lines and live X/Y distance from the window origin.
-- Axis flip (swap width and height).
-- Manual position/size dialog.
-- Reset to default size and centered position.
-- Transparency toggle.
-- Light/dark color inversion toggle.
-- Aspect ratio lock during resize.
-- Aspect lock ratio display in-window.
-- Aspect lock target updates after axis flip.
+- Set exact position/size.
+- Light/dark color inversion and transparency toggle.
+- Aspect ratio lock.
 - Screenshot capture of the screen area behind the ruler.
-- Help dialog.
-- Quit shortcut.
 
 ## Hotkeys
 
