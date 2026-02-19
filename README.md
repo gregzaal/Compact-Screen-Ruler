@@ -2,9 +2,11 @@
 
 Small always-on-top screen ruler for measuring on-screen distances.
 
-Current version: **v1.0.0**
-
 <img width="690" height="70" alt="Screenshot" src="https://github.com/user-attachments/assets/f79fe4bd-ad99-40c6-acbb-13d40efaffb0" />
+
+### [Download the latest release](https://github.com/gregzaal/Compact-Screen-Ruler/releases)
+
+Current version: **v1.0.0**
 
 
 ## Features
@@ -38,6 +40,8 @@ Current version: **v1.0.0**
 - `F1` or `H`: Open help
 
 ----
+
+# Development
 
 ## Requirements
 
