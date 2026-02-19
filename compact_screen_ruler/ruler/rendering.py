@@ -18,7 +18,7 @@ class RulerRenderingMixin(
 
     def paintEvent(self, _event):
         highlight_gray = 255 if not self.invert_colors else 0
-        background_gray = 100 if not self.invert_colors else 155
+        background_gray = 100 if not self.invert_colors else 120
         stroke_gray = 0 if not self.invert_colors else 255
         self.resetResolutionTextState()
 
@@ -43,7 +43,7 @@ class RulerRenderingMixin(
         )
         painter.setPen(transparent_pen)
 
-        painter.setBrush(QtGui.QColor(highlight_gray, highlight_gray, highlight_gray, 25))
+        painter.setBrush(QtGui.QColor(highlight_gray, highlight_gray, highlight_gray, 10))
         if self.is_transparent:
             painter.drawRect(QtCore.QRect(0, 0, max(self.width(), 0), max(self.height(), 0)))
         else:
