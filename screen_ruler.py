@@ -313,7 +313,10 @@ class ScreenRuler(QtWidgets.QWidget):
         painter.restore()
 
     def drawHoverHints(self, painter, base_color):
-        if not any(self.hover_zones.values()):
+        is_interacting = self.leftclick or self.middleclick or self.drawPickPos
+        zones_to_draw = self.active_interaction_zones if is_interacting else self.hover_zones
+
+        if not any(zones_to_draw.values()):
             return
 
         grab_size = self.GRAB_HANDLE_SIZE
@@ -329,29 +332,29 @@ class ScreenRuler(QtWidgets.QWidget):
         pen = QtGui.QPen(QtGui.QColor(base_color, base_color, base_color, 0), 1, QtCore.Qt.PenStyle.SolidLine)
         painter.setPen(pen)
 
-        if self.hover_zones["top"]:
+        if zones_to_draw["top"]:
             painter.setBrush(edge_brush)
             painter.drawRect(QtCore.QRect(0, 0, width, grab_size))
-        if self.hover_zones["bottom"]:
+        if zones_to_draw["bottom"]:
             painter.setBrush(edge_brush)
             painter.drawRect(QtCore.QRect(0, max(height - grab_size, 0), width, grab_size))
-        if self.hover_zones["left"]:
+        if zones_to_draw["left"]:
             painter.setBrush(edge_brush)
             painter.drawRect(QtCore.QRect(0, 0, grab_size, height))
-        if self.hover_zones["right"]:
+        if zones_to_draw["right"]:
             painter.setBrush(edge_brush)
             painter.drawRect(QtCore.QRect(max(width - grab_size, 0), 0, grab_size, height))
 
-        if self.hover_zones["left"] and self.hover_zones["top"]:
+        if zones_to_draw["left"] and zones_to_draw["top"]:
             painter.setBrush(corner_brush)
             painter.drawRect(QtCore.QRect(0, 0, grab_size, grab_size))
-        if self.hover_zones["right"] and self.hover_zones["top"]:
+        if zones_to_draw["right"] and zones_to_draw["top"]:
             painter.setBrush(corner_brush)
             painter.drawRect(QtCore.QRect(max(width - grab_size, 0), 0, grab_size, grab_size))
-        if self.hover_zones["left"] and self.hover_zones["bottom"]:
+        if zones_to_draw["left"] and zones_to_draw["bottom"]:
             painter.setBrush(corner_brush)
             painter.drawRect(QtCore.QRect(0, max(height - grab_size, 0), grab_size, grab_size))
-        if self.hover_zones["right"] and self.hover_zones["bottom"]:
+        if zones_to_draw["right"] and zones_to_draw["bottom"]:
             painter.setBrush(corner_brush)
             painter.drawRect(QtCore.QRect(max(width - grab_size, 0), max(height - grab_size, 0), grab_size, grab_size))
 
@@ -611,6 +614,7 @@ class ScreenRuler(QtWidgets.QWidget):
         self.help_dialog = None
         self.clickthrough_enabled = False
         self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
+        self.active_interaction_zones = {"left": False, "right": False, "top": False, "bottom": False}
         self.resolution_text_hovered = False
         self.resolution_text_rect = QtCore.QRect()
         self.left_press_started_on_resolution_text = False
@@ -731,13 +735,17 @@ class ScreenRuler(QtWidgets.QWidget):
         self.opos = self.pos()
 
         if self.middleclick:
+            self.active_interaction_zones = {"left": False, "right": False, "top": False, "bottom": False}
             self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
         elif self.leftclick:
             press_zones = self.getResizeHitZones(local_pos.x(), local_pos.y())
+            self.active_interaction_zones = dict(press_zones)
             if any(press_zones.values()):
                 self.setCursor(self.getResizeCursorShape(press_zones))
             else:
                 self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
+        else:
+            self.active_interaction_zones = {"left": False, "right": False, "top": False, "bottom": False}
 
     def mouseMoveEvent(self, event):
         ctrl_is_held = bool(QtWidgets.QApplication.keyboardModifiers() & QtCore.Qt.KeyboardModifier.ControlModifier)
@@ -896,6 +904,7 @@ class ScreenRuler(QtWidgets.QWidget):
     def leaveEvent(self, event):
         super().leaveEvent(event)
         self.hover_zones = {"left": False, "right": False, "top": False, "bottom": False}
+        self.active_interaction_zones = {"left": False, "right": False, "top": False, "bottom": False}
         self.resolution_text_hovered = False
         self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
         self.update()
@@ -915,6 +924,7 @@ class ScreenRuler(QtWidgets.QWidget):
         self.window_size_x = self.width()
         self.window_size_y = self.height()
         self.drawPickPos = False
+        self.active_interaction_zones = {"left": False, "right": False, "top": False, "bottom": False}
         self.left_press_started_on_resolution_text = False
         self.left_dragged_since_press = False
         local_pos = self.mapFromGlobal(QtGui.QCursor.pos())
